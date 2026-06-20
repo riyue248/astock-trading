@@ -1,0 +1,26 @@
+"""
+自动化A股模拟交易系统 — 启动入口
+"""
+import sys
+import os
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+if __name__ == "__main__":
+    import subprocess
+    print("=" * 50)
+    print("  Automated Paper Trading System")
+    print("  自动化A股模拟交易系统")
+    print("=" * 50)
+    print(f"  Initial Capital: ¥500,000")
+    print(f"  Strategy: Trend + Momentum + Reversal")
+    print(f"  Scan: Every 5 min during trading hours")
+    print(f"  Dashboard: http://localhost:8000")
+    print("=" * 50)
+    subprocess.run([
+        sys.executable, "-m", "uvicorn",
+        "web.app:app",
+        "--host", "0.0.0.0",
+        "--port", "8000",
+        "--log-level", "info",
+    ])

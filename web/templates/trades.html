@@ -1,0 +1,6 @@
+{% extends "base.html" %}{% block title %}交易记录{% endblock %}{% block nav_trades %}active{% endblock %}
+{% block content %}
+<div class="card mb-3"><div class="card-header">📊 交易统计</div><div class="card-body"><div id="trade-stats">加载中...</div></div></div>
+<div class="card"><div class="card-header">📋 交易记录</div><div class="card-body p-0"><div class="table-responsive"><table class="table table-sm table-hover mb-0" id="trades-table"><thead class="table-dark"><tr><th>ID</th><th>时间</th><th>代码</th><th>名称</th><th>方向</th><th>价格</th><th>数量</th><th>金额</th><th>盈亏</th><th>原因</th><th>策略</th></tr></thead><tbody></tbody></table></div></div></div>
+{% endblock %}
+{% block scripts %}<script src="/static/js/trades.js"></script>{% endblock %}

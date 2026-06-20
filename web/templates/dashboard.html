@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}仪表盘 — Paper Trading{% endblock %}
+{% block nav_dash %}active{% endblock %}
+
+{% block content %}
+<div class="row g-3 mb-3" id="summary-cards">
+    <div class="col-6 col-md-2"><div class="card text-center py-2"><small class="text-muted">总资产</small><strong id="s-equity" class="text-info">--</strong></div></div>
+    <div class="col-6 col-md-2"><div class="card text-center py-2"><small class="text-muted">现金</small><strong id="s-cash">--</strong></div></div>
+    <div class="col-6 col-md-2"><div class="card text-center py-2"><small class="text-muted">市值</small><strong id="s-mv">--</strong></div></div>
+    <div class="col-6 col-md-2"><div class="card text-center py-2"><small class="text-muted">总收益率</small><strong id="s-return" class="text-success">--</strong></div></div>
+    <div class="col-6 col-md-2"><div class="card text-center py-2"><small class="text-muted">最大回撤</small><strong id="s-dd" class="text-danger">--</strong></div></div>
+    <div class="col-6 col-md-2"><div class="card text-center py-2"><small class="text-muted">持仓数</small><strong id="s-pos">--</strong></div></div>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-8">
+        <div class="card"><div class="card-header">📈 净值曲线</div>
+            <div class="card-body p-0"><div id="equity-chart" style="height:350px;"></div></div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card mb-2"><div class="card-header">🎯 策略权重</div>
+            <div class="card-body"><div id="weight-display">加载中...</div></div>
+        </div>
+        <div class="card"><div class="card-header">⚙️ 状态</div>
+            <div class="card-body"><div id="status-display">加载中...</div></div>
+        </div>
+    </div>
+</div>
+
+<div class="card mt-3"><div class="card-header">📋 当前持仓</div>
+    <div class="card-body p-0"><div id="positions-table"></div></div>
+</div>
+
+<div class="card mt-3"><div class="card-header">🔔 最近交易信号</div>
+    <div class="card-body p-0"><div id="recent-signals"></div></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/dashboard.js"></script>
+{% endblock %}

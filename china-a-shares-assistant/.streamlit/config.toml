@@ -1,0 +1,10 @@
+[server]
+headless = true
+# 内网穿透 / 反向代理场景下关闭 XSRF 校验,避免握手失败
+enableXsrfProtection = false
+
+[browser]
+gatherUsageStats = false
+
+[theme]
+primaryColor = "#e34a4a"

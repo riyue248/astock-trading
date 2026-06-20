@@ -1,0 +1,6 @@
+{% extends "base.html" %}{% block title %}信号监控{% endblock %}{% block nav_signals %}active{% endblock %}
+{% block content %}
+<div class="card"><div class="card-header d-flex justify-content-between"><h6 class="mb-0">📡 实时信号流</h6><span id="signal-count" class="small text-muted"></span></div>
+<div class="card-body p-0"><div class="table-responsive"><table class="table table-sm table-hover mb-0" id="signals-table"><thead class="table-dark"><tr><th>时间</th><th>代码</th><th>趋势</th><th>动量</th><th>反转</th><th>综合</th><th>决策</th><th>原因</th></tr></thead><tbody></tbody></table></div></div></div>
+{% endblock %}
+{% block scripts %}<script src="/static/js/signals.js"></script>{% endblock %}

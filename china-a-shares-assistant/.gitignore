@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# 本地工具 / 旧文件
+.claude/
+watchlist.json
+
+# 私人:本机内网穿透分享脚本(不公开)
+share.ps1
+分享给好友.bat
+
+# 操作系统
+Thumbs.db
+.DS_Store

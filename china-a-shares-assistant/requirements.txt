@@ -1,0 +1,6 @@
+streamlit>=1.30
+akshare>=1.12
+plotly>=5.18
+pandas>=2.0,<2.3
+numpy>=1.23,<2.2
+requests>=2.27
