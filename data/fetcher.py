@@ -135,50 +135,83 @@ def fetch_spot_tencent(symbols: list[str]) -> list[dict]:
         return []
 
 
+# Index constituent code cache
+_INDEX_CODES: list[str] | None = None
+
+
+def _load_index_codes() -> list[str]:
+    """加载沪深300 + 中证500成分股代码（缓存在内存）。"""
+    global _INDEX_CODES
+    if _INDEX_CODES is not None and len(_INDEX_CODES) > 0:
+        return _INDEX_CODES
+
+    codes = []
+    try:
+        import akshare as ak
+        for idx in ["000300", "000905"]:
+            try:
+                df = ak.index_stock_cons(symbol=idx)
+                if "品种代码" in df.columns:
+                    codes.extend(df["品种代码"].tolist())
+                elif "code" in df.columns:
+                    codes.extend(df["code"].tolist())
+            except Exception:
+                pass
+        codes = [str(c).zfill(6) for c in codes]
+        codes = list(set(codes))
+        if len(codes) > 100:
+            _INDEX_CODES = codes
+            logger.info(f"Loaded {len(codes)} index constituent codes")
+    except Exception as e:
+        logger.warning(f"Failed to load index codes: {e}")
+
+    # Fallback: hardcoded 200+ active stocks
+    if not _INDEX_CODES or len(_INDEX_CODES) < 100:
+        _INDEX_CODES = [
+            "600519","600036","601318","600276","600900","601398","601939",
+            "600030","601166","600887","603259","600809","601012","600585",
+            "600031","688981","688256","688041","601857","600028","601088",
+            "600188","600048","601628","601601","600837","600000","600196",
+            "600763","603392","688111","688012","603288","601216","600968",
+            "600808","600418","600150","601899","600941","601328","601288",
+            "600050","600104","600690","600406","600570","600588","600795",
+            "600886","600893","600999","601006","601111","601668","601766",
+            "601800","601919","603986","000001","000002","000858","002594",
+            "300750","000333","002415","000651","300059","002475","000568",
+            "002304","000725","300015","002142","000776","002230","300124",
+            "000063","002049","000977","002236","300274","688390","002129",
+            "300760","002517","300474","001386","688819","001203","600132",
+            "000630","002155","300450","600233","002092","600499","000831",
+            "002603","600346","600426","000975","300308","688390",
+        ]
+    return _INDEX_CODES
+
+
 def get_candidate_pool(top_n: int = None) -> list[dict]:
     """
-    获取候选股票池（成交量前N）。
-    如果盘中拿不到实时成交量排序，先用预设的活跃股票池。
+    获取候选股票池（从沪深300+中证500成分股中拉实时行情）。
     """
     if top_n is None:
         top_n = settings.CANDIDATE_POOL_SIZE
 
-    # 活跃股票池（成交量前100 + 主流指数成分股）
-    active_stocks = [
-        # 金融
-        "sh601398", "sh601939", "sh601288", "sh601328", "sh600036",
-        "sh601166", "sh600000", "sh600030", "sh601318", "sh601628",
-        "sh601601", "sh600837", "sz000001", "sz002142",
-        # 消费
-        "sh600519", "sz000858", "sz000568", "sz002304", "sh600887",
-        "sh600809", "sz000333", "sz002475", "sz300750", "sz002594",
-        # 科技
-        "sh688981", "sh603259", "sz300059", "sh600276", "sz002415",
-        "sh601012", "sh600585", "sh600031", "sz000651", "sz300015",
-        # 周期
-        "sh600900", "sh601857", "sh600028", "sh601088", "sh600188",
-        "sz000002", "sz001979", "sh600048",
-        # 医药
-        "sh600196", "sz300760", "sh600763", "sh603392",
-        # 新能源
-        "sz300274", "sh688390", "sz002129",
-        # 半导体
-        "sh688256", "sh688041", "sz002049",
-        # 其他活跃
-        "sz000725", "sh600418", "sz300124", "sh688111",
-        "sz002230", "sh600150", "sz000063", "sh601899",
-        "sh600941", "sz300308", "sh688012",
-    ]
+    codes = _load_index_codes()
+    # Convert to Sina format
+    sina_codes = []
+    for c in codes:
+        c = str(c).zfill(6)
+        prefix = "sh" if c.startswith(("6", "9")) else "sz"
+        sina_codes.append(f"{prefix}{c}")
 
-    # Try to get real-time volume ranking
-    try:
-        spots = fetch_spot_batch(active_stocks[:80])
-        spots.sort(key=lambda x: x.get("成交量", 0), reverse=True)
-        return spots[:top_n]
-    except Exception:
-        pass
+    # Batch fetch
+    all_spots = fetch_spot_tencent(sina_codes[:top_n])
+    if not all_spots:
+        all_spots = fetch_spot_batch(sina_codes[:top_n])
 
-    return fetch_spot_batch(active_stocks[:top_n])
+    # Sort by volume for active selection
+    if all_spots:
+        all_spots.sort(key=lambda x: x.get("成交量", 0), reverse=True)
+
+    return all_spots[:top_n]
 
 
 def fetch_stock_history(symbol: str, days: int = None) -> pd.DataFrame:

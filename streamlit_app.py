@@ -75,17 +75,10 @@ REFRESH_SECONDS = 30
 # ─── Data fetchers ──────────────────────────────────
 
 @st.cache_data(ttl=15, show_spinner=False)
-def fetch_active_stocks(top_n: int = 30) -> pd.DataFrame:
-    """获取活跃股票行情"""
-    from data.fetcher import fetch_spot_tencent
-    active_codes = [
-        "sh600519","sh600036","sh601318","sh600276","sh600900","sh601398",
-        "sh601939","sh600030","sh601166","sh600887","sh603259","sh600809",
-        "sh601012","sh600585","sh600031","sh688981","sh688256","sh688041",
-        "sz000001","sz000002","sz000858","sz002594","sz300750","sz000333",
-        "sz002415","sz000651","sz300059","sz002475","sz300015","sz002142",
-    ]
-    results = fetch_spot_tencent(active_codes[:top_n])
+def fetch_active_stocks(top_n: int = 100) -> pd.DataFrame:
+    """获取全市场活跃股票行情（沪深300+中证500成分股）"""
+    from data.fetcher import get_candidate_pool
+    results = get_candidate_pool(top_n)
     if results:
         df = pd.DataFrame(results)
         if "涨跌幅" in df.columns:
