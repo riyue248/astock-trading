@@ -27,15 +27,15 @@ st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
     :root {
-        --bg: #07111f;
-        --panel: rgba(13, 27, 45, 0.88);
-        --panel-2: rgba(17, 35, 58, 0.78);
-        --border: rgba(148, 163, 184, 0.18);
-        --muted: #8ea2ba;
-        --text: #e7eef8;
-        --blue: #38bdf8;
-        --green: #22c55e;
-        --red: #f43f5e;
+        --bg: #f6f8fc;
+        --panel: rgba(255, 255, 255, 0.92);
+        --panel-2: rgba(241, 245, 249, 0.92);
+        --border: rgba(15, 23, 42, 0.10);
+        --muted: #64748b;
+        --text: #0f172a;
+        --blue: #2563eb;
+        --green: #16a34a;
+        --red: #dc2626;
         --amber: #f59e0b;
     }
     html, body, [class*="css"] {
@@ -45,8 +45,8 @@ st.markdown("""
     .stApp {
         color: var(--text);
         background:
-            radial-gradient(circle at 8% 0%, rgba(56, 189, 248, 0.16), transparent 30%),
-            linear-gradient(180deg, #07111f 0%, #0a1423 46%, #08101c 100%);
+            radial-gradient(circle at 8% 0%, rgba(37, 99, 235, 0.11), transparent 32%),
+            linear-gradient(180deg, #f8fbff 0%, #f6f8fc 48%, #eef4ff 100%);
     }
     header { background: transparent !important; }
     footer { visibility: hidden; }
@@ -64,9 +64,9 @@ st.markdown("""
         border: 1px solid var(--border);
         border-radius: 8px;
         background:
-            linear-gradient(135deg, rgba(56, 189, 248, 0.13), rgba(34, 197, 94, 0.04)),
-            rgba(13, 27, 45, 0.76);
-        box-shadow: 0 16px 45px rgba(2, 6, 23, 0.28);
+            linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(14, 165, 233, 0.04)),
+            rgba(255, 255, 255, 0.86);
+        box-shadow: 0 16px 38px rgba(15, 23, 42, 0.08);
     }
     .hero-title { font-size: 1.7rem; font-weight: 800; margin: 0 0 4px; }
     .hero-subtitle { color: var(--muted); font-size: 0.92rem; }
@@ -75,17 +75,17 @@ st.markdown("""
         align-items: center;
         gap: 8px;
         padding: 8px 12px;
-        border: 1px solid rgba(56, 189, 248, 0.28);
+        border: 1px solid rgba(37, 99, 235, 0.22);
         border-radius: 999px;
-        color: #c7f3ff;
-        background: rgba(56, 189, 248, 0.10);
+        color: #1d4ed8;
+        background: rgba(37, 99, 235, 0.08);
         white-space: nowrap;
     }
     .section-title {
         margin: 1rem 0 0.6rem;
         font-size: 1.03rem;
         font-weight: 750;
-        color: #dbeafe;
+        color: #1e293b;
     }
 
     /* Metric cards */
@@ -94,7 +94,7 @@ st.markdown("""
         border: 1px solid var(--border);
         border-radius: 8px;
         padding: 14px 16px;
-        box-shadow: 0 10px 26px rgba(2, 6, 23, 0.18);
+        box-shadow: 0 10px 26px rgba(15, 23, 42, 0.07);
     }
     [data-testid="stMetric"] label {
         color: var(--muted) !important;
@@ -110,7 +110,7 @@ st.markdown("""
 
     /* Sidebar */
     [data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #0b1628, #08111f);
+        background: linear-gradient(180deg, #ffffff, #f1f5f9);
         border-right: 1px solid var(--border);
     }
     [data-testid="stSidebar"] * { color: var(--text); }
@@ -132,7 +132,8 @@ st.markdown("""
     .stTextInput input {
         border-radius: 8px;
         border-color: var(--border);
-        background: rgba(15, 23, 42, 0.72);
+        background: rgba(255, 255, 255, 0.92);
+        color: var(--text);
     }
 
     /* Dataframe */
@@ -141,13 +142,13 @@ st.markdown("""
         border-radius: 8px;
         overflow: hidden;
         font-size: 0.88rem;
-        box-shadow: 0 12px 28px rgba(2, 6, 23, 0.16);
+        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.07);
     }
 
     /* Navigation tabs */
     .stTabs [data-baseweb="tab-list"] {
         gap: 6px;
-        background: rgba(8, 17, 31, 0.68);
+        background: rgba(255, 255, 255, 0.72);
         border: 1px solid var(--border);
         border-radius: 8px;
         padding: 6px;
@@ -160,9 +161,9 @@ st.markdown("""
         padding: 8px 12px;
     }
     .stTabs [aria-selected="true"] {
-        background: rgba(56, 189, 248, 0.16) !important;
-        color: #e0f7ff !important;
-        box-shadow: inset 0 0 0 1px rgba(56, 189, 248, 0.22);
+        background: rgba(37, 99, 235, 0.10) !important;
+        color: #1d4ed8 !important;
+        box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.18);
     }
 
     /* Expanders */
@@ -248,10 +249,10 @@ def chart_layout(height: int, top: int = 24) -> dict:
     return dict(
         height=height,
         margin=dict(l=46, r=30, t=top, b=24),
-        paper_bgcolor="rgba(13, 27, 45, 0.80)",
-        plot_bgcolor="rgba(13, 27, 45, 0.80)",
-        font=dict(color="#e7eef8", size=10),
-        hoverlabel=dict(bgcolor="#0f172a", bordercolor="#334155", font_size=12),
+        paper_bgcolor="rgba(255, 255, 255, 0.92)",
+        plot_bgcolor="rgba(255, 255, 255, 0.92)",
+        font=dict(color="#0f172a", size=10),
+        hoverlabel=dict(bgcolor="#ffffff", bordercolor="#cbd5e1", font_size=12),
         hovermode="x unified",
     )
 
