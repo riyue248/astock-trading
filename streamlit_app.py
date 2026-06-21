@@ -137,7 +137,7 @@ def get_market_status() -> dict:
 
 # ─── Navigation ─────────────────────────────────────
 
-tabs = st.tabs(["📊 市场总览", "📈 个股详情", "📋 模拟交易", "📖 郑希投研", "⭐ 自选股"])
+tabs = st.tabs(["📊 市场总览", "🔥 板块分析", "📈 个股详情", "📋 模拟交易", "📖 郑希投研", "⭐ 自选股"])
 
 # ─── Tab 1: 市场总览 ────────────────────────────────
 
@@ -230,9 +230,73 @@ with tabs[0]:
         fig.update_yaxes(title_text="回撤 %", secondary_y=True, gridcolor="rgba(255,255,255,0.02)")
         st.plotly_chart(fig, use_container_width=True)
 
-# ─── Tab 2: 个股详情 ────────────────────────────────
+# ─── Tab 2: 板块分析 ────────────────────────────────
 
 with tabs[1]:
+    st.markdown("### 🔥 板块热度分析")
+    st.caption("基于沪深300+中证500成分股实时行情，按行业分组计算平均涨幅")
+
+    from data.sector_analysis import analyze_sectors
+    sector_data = analyze_sectors()
+
+    if "error" not in sector_data:
+        sectors = sector_data.get("sectors", [])
+
+        if sectors:
+            # Top 5 sector cards
+            top5 = sectors[:5]
+            cols = st.columns(5)
+            for i, sec in enumerate(top5):
+                avg = sec["avg_change_pct"]
+                color = "#00c853" if avg > 0 else "#ff1744"
+                sign = "+" if avg > 0 else ""
+                cols[i].metric(
+                    f"{'🥇' if i==0 else '🥈' if i==1 else '🥉' if i==2 else ''} {sec['sector']}",
+                    f"{sign}{avg:.2f}%",
+                    f"{sec['stock_count']}只成分股",
+                )
+
+            st.markdown("---")
+
+            # Detailed sector breakdown
+            for sec in sectors:
+                avg = sec["avg_change_pct"]
+                color = "#00c853" if avg > 0 else "#ff1744"
+                sign = "+" if avg > 0 else ""
+
+                with st.expander(
+                    f"{'🟢' if avg > 0 else '🔴'} **{sec['sector']}** — "
+                    f"平均 {sign}{avg:.2f}% ({sec['stock_count']}只)",
+                    expanded=(abs(avg) > 1.0 or sec in sectors[:3]),
+                ):
+                    if sec.get("all_stocks"):
+                        df = pd.DataFrame(sec["all_stocks"])
+                        show_cols = {"code": "代码", "name": "名称", "price": "最新价", "change_pct": "涨跌幅"}
+                        cols_avail = [v for k, v in show_cols.items() if k in df.columns]
+                        display = df[list(show_cols.keys())].rename(columns=show_cols)
+                        st.dataframe(
+                            display[cols_avail],
+                            use_container_width=True,
+                            hide_index=True,
+                        )
+
+                        # Highlight recommendation
+                        if avg > 0.5 and sec.get("top_gainers"):
+                            st.success(
+                                f"📈 **{sec['sector']}** 板块整体走强，领涨: "
+                                + "、".join(
+                                    f"{s['name']}({s['code']}) +{s['change_pct']:.1f}%"
+                                    for s in sec["top_gainers"][:3]
+                                )
+                            )
+    else:
+        st.warning("板块数据暂不可用（休市或网络问题）")
+
+    st.caption("⚠️ 以上为数据分析，不构成投资建议")
+
+# ─── Tab 3: 个股详情 ────────────────────────────────
+
+with tabs[2]:
     st.markdown("### 📈 个股详情")
 
     col_search, col_info = st.columns([1, 3])
@@ -335,9 +399,9 @@ with tabs[1]:
     else:
         st.info("👆 输入股票代码，点击查询。支持 000001 / 600519 / 300750 等")
 
-# ─── Tab 3: 模拟交易 ────────────────────────────────
+# ─── Tab 4: 模拟交易 ────────────────────────────────
 
-with tabs[2]:
+with tabs[3]:
     st.markdown("### 📋 模拟交易监控")
     trading = load_trading_data()
 
@@ -406,9 +470,9 @@ with tabs[2]:
     else:
         st.info("📡 模拟交易数据暂不可用（本地数据库未连接）。部署到云端后，交易引擎在本地运行时此处将显示实时数据。")
 
-# ─── Tab 4: 郑希投研 ────────────────────────────────
+# ─── Tab 5: 郑希投研 ────────────────────────────────
 
-with tabs[3]:
+with tabs[4]:
     st.markdown("### 📖 郑希投资方法参考")
 
     method_path = "zhengxi-views/references/method.md"
@@ -468,9 +532,9 @@ with tabs[3]:
             else:
                 st.warning("检索脚本路径未找到")
 
-# ─── Tab 5: 自选股 ──────────────────────────────────
+# ─── Tab 6: 自选股 ──────────────────────────────────
 
-with tabs[4]:
+with tabs[5]:
     st.markdown("### ⭐ 自选股")
 
     if "watchlist" not in st.session_state:
