@@ -21,49 +21,167 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# ─── Custom CSS (matching FastAPI dark theme) ───────
+# ─── Custom CSS ─────────────────────────────────────
 
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
-    html, body, [class*="css"] { font-family: 'Inter', 'Microsoft YaHei', sans-serif; }
-    .stApp { background: #1a1a2e; }
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    :root {
+        --bg: #07111f;
+        --panel: rgba(13, 27, 45, 0.88);
+        --panel-2: rgba(17, 35, 58, 0.78);
+        --border: rgba(148, 163, 184, 0.18);
+        --muted: #8ea2ba;
+        --text: #e7eef8;
+        --blue: #38bdf8;
+        --green: #22c55e;
+        --red: #f43f5e;
+        --amber: #f59e0b;
+    }
+    html, body, [class*="css"] {
+        font-family: 'Inter', 'Microsoft YaHei', 'PingFang SC', sans-serif;
+        letter-spacing: 0;
+    }
+    .stApp {
+        color: var(--text);
+        background:
+            radial-gradient(circle at 8% 0%, rgba(56, 189, 248, 0.16), transparent 30%),
+            linear-gradient(180deg, #07111f 0%, #0a1423 46%, #08101c 100%);
+    }
     header { background: transparent !important; }
     footer { visibility: hidden; }
-    .main > div { padding-top: 0; }
+    .main > div { padding-top: 1.2rem; max-width: 1500px; }
+    h1, h2, h3, h4, h5 { color: var(--text); font-weight: 750; }
+    hr { border-color: var(--border); margin: 1.1rem 0; }
+
+    .hero {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        gap: 1rem;
+        padding: 22px 24px;
+        margin: 0 0 18px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background:
+            linear-gradient(135deg, rgba(56, 189, 248, 0.13), rgba(34, 197, 94, 0.04)),
+            rgba(13, 27, 45, 0.76);
+        box-shadow: 0 16px 45px rgba(2, 6, 23, 0.28);
+    }
+    .hero-title { font-size: 1.7rem; font-weight: 800; margin: 0 0 4px; }
+    .hero-subtitle { color: var(--muted); font-size: 0.92rem; }
+    .status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border: 1px solid rgba(56, 189, 248, 0.28);
+        border-radius: 999px;
+        color: #c7f3ff;
+        background: rgba(56, 189, 248, 0.10);
+        white-space: nowrap;
+    }
+    .section-title {
+        margin: 1rem 0 0.6rem;
+        font-size: 1.03rem;
+        font-weight: 750;
+        color: #dbeafe;
+    }
 
     /* Metric cards */
     [data-testid="stMetric"] {
-        background: #0f1b2d; border: 1px solid rgba(255,255,255,0.05);
-        border-radius: 8px; padding: 12px 16px;
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 14px 16px;
+        box-shadow: 0 10px 26px rgba(2, 6, 23, 0.18);
     }
-    [data-testid="stMetric"] label { color: #8899aa !important; font-size: 0.75rem; }
-    [data-testid="stMetricValue"] { color: #e0e0e0 !important; font-size: 1.4rem; }
+    [data-testid="stMetric"] label {
+        color: var(--muted) !important;
+        font-size: 0.76rem;
+        font-weight: 600;
+    }
+    [data-testid="stMetricValue"] {
+        color: var(--text) !important;
+        font-size: 1.42rem;
+        font-weight: 750;
+    }
+    [data-testid="stMetricDelta"] { font-weight: 700; }
 
     /* Sidebar */
-    [data-testid="stSidebar"] { background: #16213e; }
-    [data-testid="stSidebar"] * { color: #e0e0e0; }
+    [data-testid="stSidebar"] {
+        background: linear-gradient(180deg, #0b1628, #08111f);
+        border-right: 1px solid var(--border);
+    }
+    [data-testid="stSidebar"] * { color: var(--text); }
 
     /* Buttons */
     .stButton > button {
-        background: #0f3460; border: 1px solid #1a508b; color: #e0e0e0;
-        border-radius: 6px; font-weight: 600; width: 100%;
+        background: linear-gradient(135deg, #0ea5e9, #2563eb);
+        border: 1px solid rgba(125, 211, 252, 0.35);
+        color: white;
+        border-radius: 8px;
+        font-weight: 700;
+        width: 100%;
+        box-shadow: 0 10px 24px rgba(14, 165, 233, 0.20);
     }
-    .stButton > button:hover { background: #1a508b; border-color: #40c4ff; }
+    .stButton > button:hover {
+        background: linear-gradient(135deg, #38bdf8, #3b82f6);
+        border-color: rgba(186, 230, 253, 0.75);
+    }
+    .stTextInput input {
+        border-radius: 8px;
+        border-color: var(--border);
+        background: rgba(15, 23, 42, 0.72);
+    }
 
     /* Dataframe */
-    [data-testid="stDataFrame"] { font-size: 0.85rem; }
+    [data-testid="stDataFrame"] {
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        overflow: hidden;
+        font-size: 0.88rem;
+        box-shadow: 0 12px 28px rgba(2, 6, 23, 0.16);
+    }
 
     /* Navigation tabs */
-    .stTabs [data-baseweb="tab-list"] { gap: 0; background: #0f1b2d; border-radius: 8px; }
-    .stTabs [data-baseweb="tab"] { background: transparent; color: #8899aa; border-radius: 8px; }
-    .stTabs [aria-selected="true"] { background: #0f3460 !important; color: #40c4ff !important; }
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 6px;
+        background: rgba(8, 17, 31, 0.68);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 6px;
+    }
+    .stTabs [data-baseweb="tab"] {
+        background: transparent;
+        color: var(--muted);
+        border-radius: 7px;
+        font-weight: 700;
+        padding: 8px 12px;
+    }
+    .stTabs [aria-selected="true"] {
+        background: rgba(56, 189, 248, 0.16) !important;
+        color: #e0f7ff !important;
+        box-shadow: inset 0 0 0 1px rgba(56, 189, 248, 0.22);
+    }
 
     /* Expanders */
-    .streamlit-expanderHeader { background: #0f1b2d; border-radius: 8px; }
+    .streamlit-expanderHeader {
+        background: var(--panel-2);
+        border-radius: 8px;
+        font-weight: 700;
+    }
 
     /* Alert boxes */
-    .stAlert { background: #0f1b2d; border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; }
+    .stAlert {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+    }
+    @media (max-width: 760px) {
+        .hero { align-items: flex-start; flex-direction: column; padding: 18px; }
+        .hero-title { font-size: 1.35rem; }
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -71,6 +189,72 @@ st.markdown("""
 
 AUTO_REFRESH = st.sidebar.checkbox("🔄 自动刷新（盘中每30秒）", value=True)
 REFRESH_SECONDS = 30
+
+
+def render_hero(status_label: str):
+    """Render the compact dashboard header."""
+    st.markdown(
+        f"""
+        <div class="hero">
+            <div>
+                <div class="hero-title">A股量化交易监控台</div>
+                <div class="hero-subtitle">指数概览、板块热度、个股技术面与模拟交易状态集中查看</div>
+            </div>
+            <div class="status-pill">{status_label} · {datetime.now().strftime('%H:%M:%S')}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def section_title(title: str):
+    st.markdown(f'<div class="section-title">{title}</div>', unsafe_allow_html=True)
+
+
+def select_columns(df: pd.DataFrame, columns: dict[str, str]) -> pd.DataFrame:
+    """Return a renamed frame without failing when a data source omits columns."""
+    available = [col for col in columns if col in df.columns]
+    return df[available].rename(columns={col: columns[col] for col in available})
+
+
+def format_quote_table(df: pd.DataFrame) -> pd.DataFrame:
+    display = select_columns(
+        df,
+        {
+            "代码": "代码",
+            "名称": "名称",
+            "最新价": "最新价",
+            "涨跌幅": "涨跌幅",
+            "今开": "今开",
+            "最高": "最高",
+            "最低": "最低",
+            "成交量": "成交量",
+            "成交额": "成交额",
+        },
+    ).copy()
+    for col in ["最新价", "今开", "最高", "最低"]:
+        if col in display.columns:
+            display[col] = pd.to_numeric(display[col], errors="coerce").map(lambda v: f"{v:.2f}" if pd.notna(v) else "--")
+    if "涨跌幅" in display.columns:
+        display["涨跌幅"] = pd.to_numeric(display["涨跌幅"], errors="coerce").map(lambda v: f"{v:+.2f}%" if pd.notna(v) else "--")
+    if "成交量" in display.columns:
+        display["成交量"] = pd.to_numeric(display["成交量"], errors="coerce").map(lambda v: f"{v/10000:.0f}万" if pd.notna(v) else "--")
+    if "成交额" in display.columns:
+        display["成交额"] = pd.to_numeric(display["成交额"], errors="coerce").map(lambda v: f"{v/100000000:.2f}亿" if pd.notna(v) else "--")
+    return display
+
+
+def chart_layout(height: int, top: int = 24) -> dict:
+    return dict(
+        height=height,
+        margin=dict(l=46, r=30, t=top, b=24),
+        paper_bgcolor="rgba(13, 27, 45, 0.80)",
+        plot_bgcolor="rgba(13, 27, 45, 0.80)",
+        font=dict(color="#e7eef8", size=10),
+        hoverlabel=dict(bgcolor="#0f172a", bordercolor="#334155", font_size=12),
+        hovermode="x unified",
+    )
+
 
 # ─── Data fetchers ──────────────────────────────────
 
@@ -137,13 +321,14 @@ def get_market_status() -> dict:
 
 # ─── Navigation ─────────────────────────────────────
 
+mkt_status = get_market_status()
+render_hero(mkt_status["label"])
 tabs = st.tabs(["📊 市场总览", "🔥 板块分析", "📈 个股详情", "📋 模拟交易", "📖 郑希投研", "⭐ 自选股"])
 
 # ─── Tab 1: 市场总览 ────────────────────────────────
 
 with tabs[0]:
-    mkt_status = get_market_status()
-    st.markdown(f"### 📊 市场总览 &nbsp; <small style='font-size:0.75rem;color:#8899aa;'>{mkt_status['label']} | {datetime.now().strftime('%H:%M:%S')}</small>", unsafe_allow_html=True)
+    section_title("📊 市场总览")
 
     # Index cards
     idx_data = fetch_indices()
@@ -168,39 +353,37 @@ with tabs[0]:
     col_left, col_right = st.columns([1, 1])
 
     with col_left:
-        st.markdown("##### 🔥 涨幅榜")
+        section_title("🔥 涨幅榜")
         spot_df = fetch_active_stocks(30)
         if not spot_df.empty:
-            show_cols = {"代码": "代码", "名称": "名称", "最新价": "最新价", "涨跌幅": "涨跌幅"}
-            cols_avail = [v for k, v in show_cols.items() if k in spot_df.columns]
-            display_df = spot_df[list(show_cols.keys())].rename(columns=show_cols)
-            display_df = display_df[cols_avail]
-            # Color formatting via st.dataframe column config
+            display_df = format_quote_table(spot_df).head(10)
             st.dataframe(
-                display_df.head(10),
+                display_df,
                 use_container_width=True,
                 hide_index=True,
                 height=380,
             )
+        else:
+            st.info("行情数据暂不可用，请稍后刷新。")
 
     with col_right:
-        st.markdown("##### 📉 跌幅榜")
+        section_title("📉 跌幅榜")
         if not spot_df.empty and "涨跌幅" in spot_df.columns:
             losers = spot_df.sort_values("涨跌幅", ascending=True).head(10)
-            show_cols = {"代码": "代码", "名称": "名称", "最新价": "最新价", "涨跌幅": "涨跌幅"}
-            cols_avail = [v for k, v in show_cols.items() if k in losers.columns]
-            display_losers = losers[list(show_cols.keys())].rename(columns=show_cols)
+            display_losers = format_quote_table(losers)
             st.dataframe(
-                display_losers[cols_avail],
+                display_losers,
                 use_container_width=True,
                 hide_index=True,
                 height=380,
             )
+        else:
+            st.info("暂无跌幅榜数据。")
 
     # Quick equity curve from trading data
     trading = load_trading_data()
     if trading and trading.get("equity") and len(trading["equity"]) > 1:
-        st.markdown("##### 📈 净值曲线")
+        section_title("📈 净值曲线")
         eq = trading["equity"]
         dates = [e["date"] for e in eq]
         values = [e["total_equity"] for e in eq]
@@ -220,20 +403,17 @@ with tabs[0]:
         ), secondary_y=True)
 
         fig.update_layout(
-            height=250, margin=dict(l=40, r=40, t=5, b=20),
-            paper_bgcolor="#0f1b2d", plot_bgcolor="#0f1b2d",
-            font=dict(color="#e0e0e0", size=10),
+            **chart_layout(280, top=8),
             legend=dict(orientation="h", yanchor="bottom", y=1.02),
-            hovermode="x unified",
         )
-        fig.update_yaxes(title_text="净值", secondary_y=False, gridcolor="rgba(255,255,255,0.05)")
-        fig.update_yaxes(title_text="回撤 %", secondary_y=True, gridcolor="rgba(255,255,255,0.02)")
+        fig.update_yaxes(title_text="净值", secondary_y=False, gridcolor="rgba(148,163,184,0.12)")
+        fig.update_yaxes(title_text="回撤 %", secondary_y=True, gridcolor="rgba(148,163,184,0.08)")
         st.plotly_chart(fig, use_container_width=True)
 
 # ─── Tab 2: 板块分析 ────────────────────────────────
 
 with tabs[1]:
-    st.markdown("### 🔥 板块热度分析")
+    section_title("🔥 板块热度分析")
     st.caption("基于沪深300+中证500成分股实时行情，按行业分组计算平均涨幅")
 
     from data.sector_analysis import analyze_sectors
@@ -259,6 +439,7 @@ with tabs[1]:
             st.markdown("---")
 
             # Detailed sector breakdown
+            section_title("板块明细")
             for sec in sectors:
                 avg = sec["avg_change_pct"]
                 color = "#00c853" if avg > 0 else "#ff1744"
@@ -271,11 +452,16 @@ with tabs[1]:
                 ):
                     if sec.get("all_stocks"):
                         df = pd.DataFrame(sec["all_stocks"])
-                        show_cols = {"code": "代码", "name": "名称", "price": "最新价", "change_pct": "涨跌幅"}
-                        cols_avail = [v for k, v in show_cols.items() if k in df.columns]
-                        display = df[list(show_cols.keys())].rename(columns=show_cols)
+                        display = select_columns(
+                            df,
+                            {"code": "代码", "name": "名称", "price": "最新价", "change_pct": "涨跌幅"},
+                        )
+                        if "最新价" in display.columns:
+                            display["最新价"] = pd.to_numeric(display["最新价"], errors="coerce").map(lambda v: f"{v:.2f}" if pd.notna(v) else "--")
+                        if "涨跌幅" in display.columns:
+                            display["涨跌幅"] = pd.to_numeric(display["涨跌幅"], errors="coerce").map(lambda v: f"{v:+.2f}%" if pd.notna(v) else "--")
                         st.dataframe(
-                            display[cols_avail],
+                            display,
                             use_container_width=True,
                             hide_index=True,
                         )
@@ -297,7 +483,7 @@ with tabs[1]:
 # ─── Tab 3: 个股详情 ────────────────────────────────
 
 with tabs[2]:
-    st.markdown("### 📈 个股详情")
+    section_title("📈 个股详情")
 
     col_search, col_info = st.columns([1, 3])
     with col_search:
@@ -372,19 +558,16 @@ with tabs[2]:
                                          line=dict(color="#ffa726", width=1)), row=4, col=1)
 
             fig.update_layout(
-                height=700, showlegend=True,
-                paper_bgcolor="#0f1b2d", plot_bgcolor="#0f1b2d",
-                font=dict(color="#e0e0e0", size=9),
-                margin=dict(l=50, r=30, t=30, b=20),
+                **chart_layout(720, top=34),
+                showlegend=True,
                 xaxis_rangeslider_visible=False,
-                hovermode="x unified",
             )
-            fig.update_xaxes(gridcolor="rgba(255,255,255,0.05)")
-            fig.update_yaxes(gridcolor="rgba(255,255,255,0.05)")
+            fig.update_xaxes(gridcolor="rgba(148,163,184,0.12)")
+            fig.update_yaxes(gridcolor="rgba(148,163,184,0.12)")
             st.plotly_chart(fig, use_container_width=True)
 
             # Indicator summary
-            st.markdown("##### 技术指标摘要")
+            section_title("技术指标摘要")
             ic1, ic2, ic3, ic4, ic5 = st.columns(5)
             rsi_val = last.get("rsi14", 0)
             ic1.metric("RSI(14)", f"{rsi_val:.1f}",
@@ -402,7 +585,7 @@ with tabs[2]:
 # ─── Tab 4: 模拟交易 ────────────────────────────────
 
 with tabs[3]:
-    st.markdown("### 📋 模拟交易监控")
+    section_title("📋 模拟交易监控")
     trading = load_trading_data()
 
     if trading:
@@ -431,7 +614,7 @@ with tabs[3]:
 
         # Position cards
         if trading["positions"]:
-            st.markdown("##### 当前持仓")
+            section_title("当前持仓")
             for p in trading["positions"]:
                 pnl_color = "#00c853" if p.get("unrealized_pnl", 0) > 0 else "#ff1744"
                 with st.expander(
@@ -450,7 +633,7 @@ with tabs[3]:
 
         # Recent trades
         if trading["trades"]:
-            st.markdown("##### 最近交易")
+            section_title("最近交易")
             trades_df = pd.DataFrame(trading["trades"][:20])
             show = ["created_at", "symbol", "name", "side", "price", "quantity", "profit_pct", "close_reason", "strategies"]
             show = [c for c in show if c in trades_df.columns]
@@ -458,7 +641,7 @@ with tabs[3]:
 
         # Strategy performance
         if trading["strategies"]:
-            st.markdown("##### 策略表现")
+            section_title("策略表现")
             perf_cols = st.columns(len(trading["strategies"]))
             for i, sp in enumerate(trading["strategies"]):
                 with perf_cols[i]:
@@ -473,7 +656,7 @@ with tabs[3]:
 # ─── Tab 5: 郑希投研 ────────────────────────────────
 
 with tabs[4]:
-    st.markdown("### 📖 郑希投资方法参考")
+    section_title("📖 郑希投资方法参考")
 
     method_path = "zhengxi-views/references/method.md"
     if os.path.exists(method_path):
@@ -535,7 +718,7 @@ with tabs[4]:
 # ─── Tab 6: 自选股 ──────────────────────────────────
 
 with tabs[5]:
-    st.markdown("### ⭐ 自选股")
+    section_title("⭐ 自选股")
 
     if "watchlist" not in st.session_state:
         st.session_state.watchlist = []
@@ -553,16 +736,14 @@ with tabs[5]:
             st.session_state.watchlist = list(dict.fromkeys(st.session_state.watchlist))
 
     if st.session_state.watchlist:
-        quotes = fetch_active_stocks(50)
+        from data.fetcher import fetch_spot_tencent, fetch_spot_batch
+        wl_symbols = list(dict.fromkeys(st.session_state.watchlist))
+        quotes = pd.DataFrame(fetch_spot_tencent(wl_symbols) or fetch_spot_batch(wl_symbols))
         wl_data = quotes[quotes["代码"].isin(st.session_state.watchlist)] if not quotes.empty else pd.DataFrame()
 
         if not wl_data.empty:
-            show_cols = {"代码": "代码", "名称": "名称", "最新价": "最新价", "涨跌幅": "涨跌幅",
-                         "今开": "今开", "最高": "最高", "最低": "最低",
-                         "成交量": "成交量", "成交额": "成交额"}
-            cols_avail = [v for k, v in show_cols.items() if k in wl_data.columns]
-            display = wl_data[list(show_cols.keys())].rename(columns=show_cols)
-            st.dataframe(display[cols_avail], use_container_width=True, hide_index=True, height=400)
+            display = format_quote_table(wl_data)
+            st.dataframe(display, use_container_width=True, hide_index=True, height=400)
 
             if st.button("🗑 清空自选", key="wl_clear"):
                 st.session_state.watchlist = []

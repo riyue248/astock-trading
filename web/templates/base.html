@@ -9,10 +9,10 @@
     <link rel="stylesheet" href="/static/css/paper.css">
     {% block head %}{% endblock %}
 </head>
-<body data-bs-theme="dark" style="background:#1a1a2e;color:#e0e0e0;">
-    <nav class="navbar navbar-expand-lg navbar-dark sticky-top" style="background:#16213e;">
+<body data-bs-theme="dark">
+    <nav class="navbar navbar-expand-lg navbar-dark sticky-top app-navbar">
         <div class="container-fluid">
-            <a class="navbar-brand fw-bold" href="/">🤖 Paper Trader</a>
+            <a class="navbar-brand fw-bold" href="/">📈 A股量化监控台</a>
             <div class="collapse navbar-collapse">
                 <ul class="navbar-nav me-auto">
                     <li><a class="nav-link {% block nav_dash %}{% endblock %}" href="/">仪表盘</a></li>
@@ -28,7 +28,16 @@
             </div>
         </div>
     </nav>
-    <main class="container-fluid py-3">{% block content %}{% endblock %}</main>
+    <main class="container-fluid py-3">
+        <section class="hero-strip mb-3">
+            <div>
+                <h1>交易仪表盘</h1>
+                <p>模拟账户、策略权重、信号与风险状态集中监控</p>
+            </div>
+            <span class="hero-badge">Real-time Paper Trading</span>
+        </section>
+        {% block content %}{% endblock %}
+    </main>
     <footer class="text-center py-2 small text-muted">
         <span>模拟交易 | 数据: 新浪财经 | </span><span id="sse-ind" class="text-warning">● 等待连接</span>
     </footer>
