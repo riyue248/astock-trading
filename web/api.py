@@ -137,6 +137,57 @@ async def get_params():
     return {"params": [p.to_dict() for p in params]}
 
 
+# ─── Market Overview (717 stocks) ────────────────
+
+@router.get("/market")
+async def get_market():
+    """市场总览：指数 + 涨幅榜 + 板块热度"""
+    try:
+        from data.fetcher import get_candidate_pool, fetch_index_spot
+        from data.sector_analysis import analyze_sectors
+
+        # Fetch all 717 stocks
+        spots = get_candidate_pool(200)
+
+        # Top gainers (change > 0 only)
+        gainers = [s for s in spots if s.get("涨跌幅", 0) > 0]
+        gainers.sort(key=lambda x: x.get("涨跌幅", 0), reverse=True)
+
+        # Top losers (change < 0 only)
+        losers = [s for s in spots if s.get("涨跌幅", 0) < 0]
+        losers.sort(key=lambda x: x.get("涨跌幅", 0))
+
+        # Indices
+        idx_df = fetch_index_spot()
+        indices = idx_df.to_dict("records") if not idx_df.empty else []
+
+        # Sectors
+        sector_data = analyze_sectors()
+
+        return {
+            "indices": indices,
+            "top_gainers": gainers[:20],
+            "top_losers": losers[:20],
+            "total_stocks": len(spots),
+            "sectors": sector_data.get("sectors", []),
+            "data_time": spots[0].get("时间", "") if spots else "",
+        }
+    except Exception as e:
+        return {"error": str(e), "indices": [], "top_gainers": [], "top_losers": [], "sectors": []}
+
+
+# ─── Sector Analysis ─────────────────────────────
+
+@router.get("/sectors")
+async def get_sectors():
+    """获取板块热度分析"""
+    try:
+        from data.sector_analysis import analyze_sectors
+        return analyze_sectors()
+    except Exception as e:
+        return {"error": str(e), "sectors": []}
+
+
 # ─── Status ───────────────────────────────────────
 
 @router.get("/status")

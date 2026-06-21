@@ -3,6 +3,7 @@
 {% block nav_dash %}active{% endblock %}
 
 {% block content %}
+<!-- Portfolio Summary Cards -->
 <div class="row g-3 mb-3" id="summary-cards">
     <div class="col-6 col-md-2"><div class="card text-center py-2"><small class="text-muted">总资产</small><strong id="s-equity" class="text-info">--</strong></div></div>
     <div class="col-6 col-md-2"><div class="card text-center py-2"><small class="text-muted">现金</small><strong id="s-cash">--</strong></div></div>
@@ -12,6 +13,20 @@
     <div class="col-6 col-md-2"><div class="card text-center py-2"><small class="text-muted">持仓数</small><strong id="s-pos">--</strong></div></div>
 </div>
 
+<!-- Sector Analysis Row -->
+<div class="card mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0">🔥 板块热度</h6>
+        <small class="text-muted" id="sector-time">加载中...</small>
+    </div>
+    <div class="card-body" id="sector-cards">
+        <div class="row g-2" id="sector-list">
+            <div class="col-12 text-center text-muted py-3">加载板块数据中...</div>
+        </div>
+    </div>
+</div>
+
+<!-- Equity + Strategy Row -->
 <div class="row g-3">
     <div class="col-md-8">
         <div class="card"><div class="card-header">📈 净值曲线</div>

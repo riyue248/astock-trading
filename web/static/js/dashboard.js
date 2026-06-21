@@ -90,5 +90,40 @@ onScanResult = function(data) {
     }
 };
 
-document.addEventListener('DOMContentLoaded', loadDashboard);
-setInterval(loadDashboard, 30000); // Refresh every 30s
+// Sector analysis
+async function loadSectors() {
+    try {
+        const resp = await fetch('/api/sectors');
+        const data = await resp.json();
+        if (data.error) { console.warn('Sectors:', data.error); return; }
+        const sectors = data.sectors || [];
+        const container = document.getElementById('sector-list');
+        if (!container) return;
+        document.getElementById('sector-time').textContent = '数据时间: ' + (data.data_time || '--');
+        container.innerHTML = sectors.map(sec => {
+            const avg = sec.avg_change_pct;
+            const cls = avg > 0 ? 'text-up' : avg < 0 ? 'text-down' : '';
+            const sign = avg > 0 ? '+' : '';
+            const stocks = (sec.all_stocks || []).map(s =>
+                `${s.name}(${s.code}) <span class="${s.change_pct>0?'text-up':'text-down'}">${s.change_pct>0?'+':''}${s.change_pct.toFixed(1)}%</span>`
+            ).join('&nbsp;');
+            return `<div class="col-6 col-md-4 col-lg-2 mb-2">
+                <div class="card h-100" style="cursor:pointer">
+                    <div class="card-body py-2 px-3">
+                        <small class="text-muted">${sec.sector}</small>
+                        <h5 class="${cls} mb-1">${sign}${avg.toFixed(2)}%</h5>
+                        <small class="text-muted">${sec.stock_count}只成分股</small>
+                        <div style="font-size:0.75rem;margin-top:4px;line-height:1.4">${stocks}</div>
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+    } catch(e) { console.error('Sectors error:', e); }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadDashboard();
+    loadSectors();
+});
+setInterval(loadDashboard, 30000);
+setInterval(loadSectors, 60000);
