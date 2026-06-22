@@ -5,6 +5,7 @@
 import logging
 import os
 import re
+import socket
 import time
 from datetime import datetime, timedelta
 
@@ -14,6 +15,9 @@ import requests
 from config import settings
 
 logger = logging.getLogger(__name__)
+
+# 设置全局 socket 超时，防止 akshare 调用永久卡住
+socket.setdefaulttimeout(30)
 
 # Disable system proxy
 os.environ["NO_PROXY"] = "*"
@@ -236,23 +240,13 @@ def fetch_stock_history(symbol: str, days: int = None) -> pd.DataFrame:
 
     try:
         import akshare as ak
-        import concurrent.futures
         end_date = datetime.now().strftime("%Y%m%d")
         start_date = (datetime.now() - timedelta(days=days)).strftime("%Y%m%d")
 
-        # Run akshare call with timeout (prevent hanging on slow network)
-        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
-            future = pool.submit(
-                ak.stock_zh_a_daily,
-                symbol=sina_code, start_date=start_date,
-                end_date=end_date, adjust="qfq",
-            )
-            try:
-                df = future.result(timeout=15)
-            except concurrent.futures.TimeoutError:
-                logger.warning(f"History fetch timeout for {symbol}")
-                return pd.DataFrame()
-
+        df = ak.stock_zh_a_daily(
+            symbol=sina_code, start_date=start_date,
+            end_date=end_date, adjust="qfq",
+        )
         if df is None or df.empty:
             return pd.DataFrame()
 
@@ -280,18 +274,10 @@ def fetch_index_history(symbol: str = "sh000001", days: int = None) -> pd.DataFr
 
     try:
         import akshare as ak
-        import concurrent.futures
         end_date = datetime.now().strftime("%Y%m%d")
         start_date = (datetime.now() - timedelta(days=days)).strftime("%Y%m%d")
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
-            future = pool.submit(ak.stock_zh_index_daily, symbol=symbol)
-            try:
-                df = future.result(timeout=15)
-            except concurrent.futures.TimeoutError:
-                logger.warning(f"Index history fetch timeout for {symbol}")
-                return pd.DataFrame()
-
+        df = ak.stock_zh_index_daily(symbol=symbol)
         if df is None or df.empty:
             return pd.DataFrame()
 

@@ -110,8 +110,14 @@ class TradingScheduler:
         if now - self._last_scan < settings.SCAN_INTERVAL_SECONDS:
             return
 
+        # 防止上次扫描未完成时再次触发
+        if getattr(self, '_scan_running', False):
+            logger.info("Previous scan still running, skip this cycle")
+            return
+
         self._last_scan = now
         self.scan_count += 1
+        self._scan_running = True
 
         logger.info(f"=== Scan #{self.scan_count} at {datetime.now().strftime('%H:%M:%S')} ===")
 
@@ -133,15 +139,36 @@ class TradingScheduler:
                     })
                 except Exception:
                     pass
+        finally:
+            self._scan_running = False
 
     async def run_manual_scan(self) -> dict:
-        """手动触发一次扫描（API调用）。"""
+        """手动触发一次扫描（API调用）。
+
+        将扫描提交到线程池后台执行，立即返回。
+        避免因扫描耗时（~2分钟）导致 HTTP 超时。
+        """
         if not self._engine:
             return {"error": "Engine not initialized"}
-        if self._executor:
-            loop = asyncio.get_running_loop()
-            return await loop.run_in_executor(self._executor, self._engine.run_scan)
-        return self._engine.run_scan()
+        if not self._executor:
+            return {"error": "Executor not initialized"}
+
+        # 防止重复触发
+        if getattr(self, '_scan_running', False):
+            return {"status": "scan_already_running", "scan_count": self.scan_count}
+
+        self._scan_running = True
+
+        def _run_scan_bg():
+            try:
+                self._engine.run_scan()
+            except Exception as e:
+                logger.error(f"Manual scan error: {e}", exc_info=True)
+            finally:
+                self._scan_running = False
+
+        self._executor.submit(_run_scan_bg)
+        return {"status": "scan_started", "message": "扫描已在后台启动，结果请查看仪表盘"}
 
     def get_status(self) -> dict:
         is_trading, status = is_trading_time()
