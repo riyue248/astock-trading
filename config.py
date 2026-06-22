@@ -31,7 +31,7 @@ class Settings:
     # --- Scoring ---
     BUY_THRESHOLD = 0.25            # Composite score to trigger buy (was 0.40, too high)
     SELL_THRESHOLD = 0.30           # Composite score to trigger sell
-    CANDIDATE_POOL_SIZE = 717       # 沪深300+中证500全量候选池
+    CANDIDATE_POOL_SIZE = 200       # Top N by volume (was 717, too slow for 5-min cycle)
 
     # --- Trading hours ---
     MORNING_START = time(9, 30)
