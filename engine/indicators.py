@@ -80,8 +80,11 @@ def adx(high, low, close, period=14) -> pd.DataFrame:
     plus_dm = np.where((up_move > down_move) & (up_move > 0), up_move, 0)
     minus_dm = np.where((down_move > up_move) & (down_move > 0), down_move, 0)
 
-    plus_di = 100 * pd.Series(plus_dm).ewm(alpha=1 / period, adjust=False).mean() / atr_val
-    minus_di = 100 * pd.Series(minus_dm).ewm(alpha=1 / period, adjust=False).mean() / atr_val
+    plus_dm = pd.Series(plus_dm, index=high.index)
+    minus_dm = pd.Series(minus_dm, index=high.index)
+
+    plus_di = 100 * plus_dm.ewm(alpha=1 / period, adjust=False).mean() / atr_val
+    minus_di = 100 * minus_dm.ewm(alpha=1 / period, adjust=False).mean() / atr_val
 
     dx = (abs(plus_di - minus_di) / (plus_di + minus_di).replace(0, np.nan)) * 100
     adx_val = dx.ewm(alpha=1 / period, adjust=False).mean()

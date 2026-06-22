@@ -33,8 +33,8 @@ class RiskManager:
             return 0
 
         # Conservative win/loss ratio assumption
-        avg_win = 0.05   # 5% average win
-        avg_loss = 0.04  # 4% average loss (tighter with stop loss)
+        avg_win = 0.08   # 8% average win (between stop -8% and take profit +15%)
+        avg_loss = 0.05  # 5% average loss (tighter than stop loss due to early exits)
         ratio = avg_win / max(avg_loss, 0.001)
 
         # Kelly fraction

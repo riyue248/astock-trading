@@ -98,11 +98,19 @@ def fetch_spot_tencent(symbols: list[str]) -> list[dict]:
         return []
     # Convert sina format to tencent format if needed
     tx_codes = [_tx_symbol(s) for s in symbols]
-    batch = ",".join(tx_codes[:50])  # 腾讯单次限制约50个代码
-    try:
-        url = f"https://qt.gtimg.cn/q={batch}"
-        resp = _make_session().get(url, headers=_TX_HEADERS, timeout=10)
-        results = []
+    results = []
+    for i in range(0, len(tx_codes), 50):  # 腾讯单次限制约50个代码
+        batch = ",".join(tx_codes[i:i + 50])
+        if not batch:
+            continue
+        try:
+            url = f"https://qt.gtimg.cn/q={batch}"
+            resp = _make_session().get(url, headers=_TX_HEADERS, timeout=10)
+            resp.encoding = "gbk"
+        except Exception as e:
+            logger.warning(f"Tencent spot error: {e}")
+            continue
+
         for line in resp.text.strip().split("\n"):
             line = line.strip()
             if not line or "=" not in line:
@@ -129,10 +137,7 @@ def fetch_spot_tencent(symbols: list[str]) -> list[dict]:
                 "换手率": float(fields[38]) if len(fields) > 38 and fields[38] else 0,
                 "市盈率-动态": float(fields[39]) if len(fields) > 39 and fields[39] else 0,
             })
-        return results
-    except Exception as e:
-        logger.warning(f"Tencent spot error: {e}")
-        return []
+    return results
 
 
 # Index constituent code cache
@@ -221,7 +226,11 @@ def fetch_stock_history(symbol: str, days: int = None) -> pd.DataFrame:
     if days is None:
         days = settings.DEFAULT_HISTORY_DAYS
 
-    code = str(symbol).zfill(6)
+    code = str(symbol)
+    # 去掉已有的 sh/sz 前缀，避免重复拼接
+    if len(code) > 2 and code.startswith(("sh", "sz")):
+        code = code[2:]
+    code = code.zfill(6)
     prefix = "sh" if code.startswith(("6", "9")) else "sz"
     sina_code = f"{prefix}{code}"
 
@@ -251,6 +260,40 @@ def fetch_stock_history(symbol: str, days: int = None) -> pd.DataFrame:
         return df
     except Exception as e:
         logger.warning(f"History fetch error for {symbol}: {e}")
+        return pd.DataFrame()
+
+
+def fetch_index_history(symbol: str = "sh000001", days: int = None) -> pd.DataFrame:
+    """获取指数历史K线，例如 sh000001 上证指数。"""
+    if days is None:
+        days = settings.DEFAULT_HISTORY_DAYS
+
+    try:
+        import akshare as ak
+        end_date = datetime.now().strftime("%Y%m%d")
+        start_date = (datetime.now() - timedelta(days=days)).strftime("%Y%m%d")
+
+        df = ak.stock_zh_index_daily(symbol=symbol)
+        if df is None or df.empty:
+            return pd.DataFrame()
+
+        col_map = {
+            "date": "date", "open": "open", "high": "high",
+            "low": "low", "close": "close", "volume": "volume",
+            "amount": "amount",
+        }
+        df.rename(columns={k: v for k, v in col_map.items() if k in df.columns}, inplace=True)
+        if "date" in df.columns:
+            df["date"] = pd.to_datetime(df["date"])
+            start = pd.to_datetime(start_date)
+            end = pd.to_datetime(end_date)
+            df = df[(df["date"] >= start) & (df["date"] <= end)].copy()
+            df["date"] = df["date"].dt.strftime("%Y-%m-%d")
+        if "close" in df.columns and "change_pct" not in df.columns:
+            df["change_pct"] = df["close"].pct_change() * 100
+        return df
+    except Exception as e:
+        logger.warning(f"Index history fetch error for {symbol}: {e}")
         return pd.DataFrame()
 
 

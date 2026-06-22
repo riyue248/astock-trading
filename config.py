@@ -29,7 +29,7 @@ class Settings:
     WEIGHT_REVERSAL = 0.25
 
     # --- Scoring ---
-    BUY_THRESHOLD = 0.40            # Composite score to trigger buy
+    BUY_THRESHOLD = 0.25            # Composite score to trigger buy (was 0.40, too high)
     SELL_THRESHOLD = 0.30           # Composite score to trigger sell
     CANDIDATE_POOL_SIZE = 717       # 沪深300+中证500全量候选池
 

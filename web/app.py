@@ -78,7 +78,7 @@ async def lifespan(app: FastAPI):
     for name, p in params.items():
         scoring_engine.update_params(name, p)
 
-    strategy_engine = StrategyEngine(paper_account, scoring_engine)
+    strategy_engine = StrategyEngine(paper_account, scoring_engine, optimizer=optimizer)
 
     trading_scheduler = TradingScheduler()
     trading_scheduler.set_engine(strategy_engine)

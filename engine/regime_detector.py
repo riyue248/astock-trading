@@ -5,7 +5,7 @@ import logging
 
 import pandas as pd
 
-from data.fetcher import fetch_stock_history
+from data.fetcher import fetch_index_history
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +23,7 @@ def detect_regime() -> dict:
     ADX < 20 → ranging（震荡市，反转策略加重）
     20-25   → transition（过渡期，中性权重）
     """
-    from datetime import datetime, date
+    from datetime import datetime
     from engine.indicators import adx
 
     today = datetime.now().strftime("%Y-%m-%d")
@@ -35,8 +35,9 @@ def detect_regime() -> dict:
                 "date": today}
 
     try:
-        # Fetch Shanghai Composite history
-        df = fetch_stock_history("000001", days=30)  # 上证指数
+        # Fetch Shanghai Composite history explicitly. Do not route through
+        # stock history, where 000001 means sz000001 (平安银行).
+        df = fetch_index_history("sh000001", days=60)
 
         if df is None or df.empty or len(df) < 20:
             logger.warning("Insufficient index data for regime detection")

@@ -18,9 +18,10 @@ logger = logging.getLogger(__name__)
 class StrategyEngine:
     """扫描和交易编排。"""
 
-    def __init__(self, account: PaperAccount, scoring: ScoringEngine):
+    def __init__(self, account: PaperAccount, scoring: ScoringEngine, optimizer=None):
         self.account = account
         self.scoring = scoring
+        self.optimizer = optimizer
         self.risk = RiskManager()
         self.scan_count = 0
         self.last_scan_time: datetime | None = None
@@ -71,6 +72,7 @@ class StrategyEngine:
                     sell_order["reason"],
                 )
                 if trade:
+                    self._record_trade_result(trade)
                     result["sells"].append({
                         "symbol": sell_order["symbol"],
                         "price": sell_order["price"],
@@ -198,6 +200,7 @@ class StrategyEngine:
 
                 trade = self.account.sell(symbol, price, "signal")
                 if trade:
+                    self._record_trade_result(trade)
                     result["sells"].append({
                         "symbol": symbol,
                         "price": price,
@@ -222,6 +225,19 @@ class StrategyEngine:
                         f"{result['signals_generated']} signals, {elapsed:.1f}s")
 
         return result
+
+    def _record_trade_result(self, trade: dict):
+        """Update optimizer stats after a position is closed."""
+        if not self.optimizer or not trade:
+            return
+        try:
+            self.optimizer.update_trade_result(
+                trade.get("strategies", ""),
+                trade.get("profit_pct", 0) or 0,
+            )
+            self.scoring.update_weights(self.optimizer.get_current_weights())
+        except Exception as e:
+            logger.warning(f"Optimizer update failed: {e}")
 
     def _get_avg_win_rate(self) -> float:
         """获取策略平均胜率。"""

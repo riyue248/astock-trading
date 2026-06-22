@@ -11,7 +11,7 @@ from config import settings
 from engine.strategies.trend import TrendStrategy
 from engine.strategies.momentum import MomentumStrategy
 from engine.strategies.reversal import ReversalStrategy
-from engine.regime_detector import get_regime_weights
+from engine.regime_detector import detect_regime, get_regime_weights
 from models.orm import Signal
 
 logger = logging.getLogger(__name__)
@@ -40,9 +40,8 @@ class ScoringEngine:
 
     @property
     def current_weights(self) -> dict:
-        if self._override_weights:
-            return dict(self._override_weights)
-        return get_regime_weights(self.base_weights)
+        base = self._override_weights if self._override_weights else self.base_weights
+        return get_regime_weights(base)
 
     def update_weights(self, weights: dict):
         """从 optimizer 更新权重。"""
@@ -79,14 +78,17 @@ class ScoringEngine:
 
         if composite >= settings.BUY_THRESHOLD and buy_signals >= 1:
             action = "buy"
-        elif composite <= -settings.SELL_THRESHOLD and sell_signals >= 2:
+        elif (
+            composite <= -settings.SELL_THRESHOLD and sell_signals >= 1
+        ) or (
+            composite <= -(settings.SELL_THRESHOLD * 0.5) and sell_signals >= 2
+        ):
             action = "sell"
         else:
             action = "hold"
 
         # Reason
         reasons = [f"{n}={s.score:.2f}({s.action})" for n, s in results.items()]
-        regime = get_regime_weights(self.base_weights)  # Will be cached
         reason = f"composite={composite:.3f} | {' '.join(reasons)}"
 
         return {
@@ -142,7 +144,7 @@ class ScoringEngine:
             composite_score=score_result["composite_score"],
             final_action=score_result["final_action"],
             decision_reason=score_result["decision_reason"],
-            market_regime=str(get_regime_weights({})),
+            market_regime=json.dumps(detect_regime(), ensure_ascii=False),
             strategy_weights=score_result["strategy_weights"],
             scanned_at=datetime.now(),
         )
