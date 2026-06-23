@@ -5,11 +5,11 @@ async function loadTrades() {
         const stats = await sResp.json();
         document.getElementById('trade-stats').innerHTML = `
             <div class="row g-2">
-                <div class="col-6 col-md-2"><div class="card text-center py-1"><small class="text-muted">总交易</small><strong>${stats.total_trades}</strong></div></div>
-                <div class="col-6 col-md-2"><div class="card text-center py-1"><small class="text-muted">胜率</small><strong>${(stats.win_rate*100).toFixed(1)}%</strong></div></div>
-                <div class="col-6 col-md-2"><div class="card text-center py-1"><small class="text-muted">总PnL</small><strong class="${stats.total_pnl>0?'text-up':'text-down'}">${stats.total_pnl>0?'+':''}¥${(stats.total_pnl||0).toFixed(0)}</strong></div></div>
-                <div class="col-6 col-md-2"><div class="card text-center py-1"><small class="text-muted">平均盈利</small><strong class="text-up">+${(stats.avg_win_pct*100||0).toFixed(2)}%</strong></div></div>
-                <div class="col-6 col-md-2"><div class="card text-center py-1"><small class="text-muted">平均亏损</small><strong class="text-down">-${(stats.avg_loss_pct*100||0).toFixed(2)}%</strong></div></div>
+                <div class="col-6 col-md"><div class="card text-center py-1"><small class="text-muted">总交易</small><strong>${stats.total_trades}</strong></div></div>
+                <div class="col-6 col-md"><div class="card text-center py-1"><small class="text-muted">持仓中</small><strong>${stats.open_positions||0}</strong></div></div>
+                <div class="col-6 col-md"><div class="card text-center py-1"><small class="text-muted">已平仓</small><strong>${stats.closed_trades||0}</strong></div></div>
+                <div class="col-6 col-md"><div class="card text-center py-1"><small class="text-muted">胜率</small><strong>${stats.closed_trades?((stats.win_rate*100).toFixed(1)+'%'):'--'}</strong></div></div>
+                <div class="col-6 col-md"><div class="card text-center py-1"><small class="text-muted">已实现盈亏</small><strong class="${stats.total_pnl>0?'text-up':stats.total_pnl<0?'text-down':''}">${stats.total_pnl!=null?(stats.total_pnl>0?'+':'')+'¥'+Math.abs(stats.total_pnl||0).toFixed(0):'--'}</strong></div></div>
             </div>`;
         const tbody = document.querySelector('#trades-table tbody');
         tbody.innerHTML = (trades.trades||[]).map(t => {

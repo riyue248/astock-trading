@@ -80,18 +80,22 @@ async def get_trades(
 async def get_trade_stats():
     with SessionLocal() as db:
         all_trades = db.execute(
-            select(TradeLog).where(TradeLog.side == "sell")
+            select(TradeLog)
         ).scalars().all()
 
-        wins = [t for t in all_trades if (t.profit_pct or 0) > 0]
-        losses = [t for t in all_trades if (t.profit_pct or 0) < 0]
+        buys = [t for t in all_trades if t.side == "buy"]
+        sells = [t for t in all_trades if t.side == "sell"]
+        wins = [t for t in sells if (t.profit_pct or 0) > 0]
+        losses = [t for t in sells if (t.profit_pct or 0) < 0]
 
         return {
             "total_trades": len(all_trades),
+            "open_positions": len(buys) - len(sells),
+            "closed_trades": len(sells),
             "wins": len(wins),
             "losses": len(losses),
-            "win_rate": len(wins) / len(all_trades) if all_trades else 0,
-            "total_pnl": sum(t.profit_amount or 0 for t in all_trades),
+            "win_rate": len(wins) / len(sells) if sells else 0,
+            "total_pnl": sum(t.profit_amount or 0 for t in sells),
             "avg_win_pct": sum(t.profit_pct or 0 for t in wins) / len(wins) if wins else 0,
             "avg_loss_pct": sum(t.profit_pct or 0 for t in losses) / len(losses) if losses else 0,
         }
