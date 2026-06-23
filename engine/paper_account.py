@@ -340,6 +340,7 @@ class PaperAccount:
             "total_equity": round(equity, 2),
             "cash": round(self._cash, 2),
             "market_value": round(self.market_value(), 2),
+            "net_profit": round(equity - self.initial_capital, 2),
             "total_return_pct": round(total_return * 100, 2),
             "drawdown_pct": round(self.drawdown_pct() * 100, 2),
             "position_count": self.position_count,

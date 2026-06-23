@@ -17,10 +17,10 @@ if __name__ == "__main__":
     print("  Automated Paper Trading System")
     print("  自动化A股模拟交易系统")
     print("=" * 50)
-    print(f"  Initial Capital: ¥500,000")
-    print(f"  Strategy: Trend + Momentum + Reversal")
-    print(f"  Scan: Every 5 min during trading hours")
-    print(f"  Dashboard: http://localhost:8000")
+    print("  Initial Capital: CNY 500,000")
+    print("  Strategy: Trend + Momentum + Reversal")
+    print("  Scan: Every 5 min during trading hours")
+    print("  Dashboard: http://localhost:8000")
     print("=" * 50)
 
     import uvicorn

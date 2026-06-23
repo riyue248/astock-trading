@@ -22,6 +22,10 @@ function updateSummary(p) {
     document.getElementById('s-equity').textContent = '¥' + (p.total_equity||0).toLocaleString();
     document.getElementById('s-cash').textContent = '¥' + (p.cash||0).toLocaleString();
     document.getElementById('s-mv').textContent = '¥' + (p.market_value||0).toLocaleString();
+    const pnlEl = document.getElementById('s-pnl');
+    const pnl = p.net_profit || 0;
+    pnlEl.textContent = '¥' + (pnl>0?'+':'') + Math.abs(pnl).toLocaleString();
+    pnlEl.className = pnl > 0 ? 'text-up' : pnl < 0 ? 'text-down' : '';
     const retEl = document.getElementById('s-return');
     const ret = p.total_return_pct || 0;
     retEl.textContent = (ret>0?'+':'') + ret.toFixed(2) + '%';
