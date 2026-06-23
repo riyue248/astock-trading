@@ -8,6 +8,8 @@
   --blue:#2563eb;
   --green:#16a34a;
   --red:#dc2626;
+  --gain:#dc2626;    /* 中国股市：红涨 */
+  --loss:#16a34a;    /* 中国股市：绿跌 */
   --amber:#d97706;
 }
 *{letter-spacing:0}
@@ -78,8 +80,8 @@ body{
 .card-body{color:var(--text)}
 .text-muted{color:var(--muted)!important}
 .text-info{color:var(--blue)!important}
-.text-success,.text-up{color:var(--green)!important}
-.text-danger,.text-down{color:var(--red)!important}
+.text-success,.text-up{color:var(--gain)!important}
+.text-danger,.text-down{color:var(--loss)!important}
 .text-warning{color:var(--amber)!important}
 .table{
   --bs-table-color:var(--text);

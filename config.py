@@ -15,7 +15,7 @@ class Settings:
     INITIAL_CAPITAL = 500_000.0
     COMMISSION_RATE = 0.00025       # 0.025% per side
     MIN_SHARES_PER_TRADE = 100      # 1 lot = 100 shares
-    MAX_POSITIONS = 3               # Max concurrent positions
+    MAX_POSITIONS = 10              # Max concurrent positions
     MAX_POSITION_PCT = 0.30         # Single position ≤ 30%
     MAX_PORTFOLIO_DRAWDOWN = 0.15   # Halt buys if drawdown > 15%
 

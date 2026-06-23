@@ -342,7 +342,7 @@ with tabs[0]:
         cols = st.columns(len(idx_list))
         for i, idx in enumerate(idx_list):
             pct = idx.get("change_pct", 0)
-            color = "#00c853" if pct > 0 else "#ff1744" if pct < 0 else "#8899aa"
+            color = "#ff1744" if pct > 0 else "#00c853" if pct < 0 else "#8899aa"
             sign = "+" if pct > 0 else ""
             cols[i].metric(
                 idx.get("name", ""),
@@ -399,7 +399,7 @@ with tabs[0]:
         ), secondary_y=False)
         fig.add_trace(go.Scatter(
             x=dates, y=drawdown, mode="lines", name="回撤%",
-            line=dict(color="#ff1744", width=1, dash="dot"),
+            line=dict(color="#00c853", width=1, dash="dot"),
             fill="tozeroy", fillcolor="rgba(255,23,68,0.05)",
         ), secondary_y=True)
 
@@ -429,7 +429,7 @@ with tabs[1]:
             cols = st.columns(5)
             for i, sec in enumerate(top5):
                 avg = sec["avg_change_pct"]
-                color = "#00c853" if avg > 0 else "#ff1744"
+                color = "#ff1744" if avg > 0 else "#00c853"
                 sign = "+" if avg > 0 else ""
                 cols[i].metric(
                     f"{'🥇' if i==0 else '🥈' if i==1 else '🥉' if i==2 else ''} {sec['sector']}",
@@ -443,7 +443,7 @@ with tabs[1]:
             section_title("板块明细")
             for sec in sectors:
                 avg = sec["avg_change_pct"]
-                color = "#00c853" if avg > 0 else "#ff1744"
+                color = "#ff1744" if avg > 0 else "#00c853"
                 sign = "+" if avg > 0 else ""
 
                 with st.expander(
@@ -503,7 +503,7 @@ with tabs[2]:
 
             # Info cards row
             c1, c2, c3, c4, c5, c6 = st.columns(6)
-            color = "#00c853" if change_pct > 0 else "#ff1744"
+            color = "#ff1744" if change_pct > 0 else "#00c853"
             c1.metric("现价", f"{last['close']:.2f}", f"{change_pct:+.2f}%")
             c2.metric("今开", f"{last.get('open', 0):.2f}")
             c3.metric("昨收", f"{prev_close:.2f}")
@@ -523,7 +523,7 @@ with tabs[2]:
             fig.add_trace(go.Candlestick(
                 x=df["date"], open=df["open"], high=df["high"],
                 low=df["low"], close=df["close"], name="K线",
-                increasing_line_color="#00c853", decreasing_line_color="#ff1744",
+                increasing_line_color="#ff1744", decreasing_line_color="#00c853",
             ), row=1, col=1)
             for ma, color, w in [("ma5", "#42a5f5", 1), ("ma20", "#ffa726", 1), ("ma60", "#ce93d8", 1)]:
                 if ma in df.columns:
@@ -531,7 +531,7 @@ with tabs[2]:
                                              line=dict(color=color, width=w)), row=1, col=1)
 
             # Volume
-            colors = ["#00c853" if df.iloc[i]["close"] >= df.iloc[i]["open"] else "#ff1744"
+            colors = ["#ff1744" if df.iloc[i]["close"] >= df.iloc[i]["open"] else "#00c853"
                       for i in range(len(df))]
             fig.add_trace(go.Bar(x=df["date"], y=df["volume"], name="量",
                                  marker_color=colors, opacity=0.5), row=2, col=1)
@@ -542,7 +542,7 @@ with tabs[2]:
                                          line=dict(color="#42a5f5", width=1)), row=3, col=1)
                 fig.add_trace(go.Scatter(x=df["date"], y=df["macd_dea"], name="DEA",
                                          line=dict(color="#ffa726", width=1)), row=3, col=1)
-                macd_colors = ["#00c853" if v >= 0 else "#ff1744" for v in (df.get("macd_hist", pd.Series([0]*len(df))).fillna(0))]
+                macd_colors = ["#ff1744" if v >= 0 else "#00c853" for v in (df.get("macd_hist", pd.Series([0]*len(df))).fillna(0))]
                 fig.add_trace(go.Bar(x=df["date"], y=df["macd_hist"].fillna(0), name="HIST",
                                      marker_color=macd_colors, opacity=0.6), row=3, col=1)
 
@@ -550,8 +550,8 @@ with tabs[2]:
             if "rsi14" in df.columns:
                 fig.add_trace(go.Scatter(x=df["date"], y=df["rsi14"], name="RSI",
                                          line=dict(color="#ce93d8", width=1.5)), row=4, col=1)
-                fig.add_hline(y=70, line_dash="dash", line_color="#ff1744", opacity=0.5, row=4, col=1)
-                fig.add_hline(y=30, line_dash="dash", line_color="#00c853", opacity=0.5, row=4, col=1)
+                fig.add_hline(y=70, line_dash="dash", line_color="#00c853", opacity=0.5, row=4, col=1)
+                fig.add_hline(y=30, line_dash="dash", line_color="#ff1744", opacity=0.5, row=4, col=1)
             if "kdj_k" in df.columns:
                 fig.add_trace(go.Scatter(x=df["date"], y=df["kdj_k"], name="K",
                                          line=dict(color="#42a5f5", width=1)), row=4, col=1)
@@ -617,7 +617,7 @@ with tabs[3]:
         if trading["positions"]:
             section_title("当前持仓")
             for p in trading["positions"]:
-                pnl_color = "#00c853" if p.get("unrealized_pnl", 0) > 0 else "#ff1744"
+                pnl_color = "#ff1744" if p.get("unrealized_pnl", 0) > 0 else "#00c853"
                 with st.expander(
                     f"{'🟢' if p.get('unrealized_pnl',0) > 0 else '🔴'} "
                     f"{p['symbol']} {p['name']} — {p['quantity']}股 "
