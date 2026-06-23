@@ -28,6 +28,8 @@ class TradingScheduler:
         self._paused = False     # Allow manual pause via API
         self._afternoon_snapshot_done = False
         self._executor = None    # ThreadPoolExecutor, set in start()
+        self._scheduler_started = False  # Track actual startup success
+        self._last_heartbeat = 0.0       # Track last job execution time
 
     @property
     def is_paused(self):
@@ -44,14 +46,39 @@ class TradingScheduler:
         import concurrent.futures
         self._executor = concurrent.futures.ThreadPoolExecutor(max_workers=1, thread_name_prefix="scan")
         self._scheduler = AsyncIOScheduler()
-        self._scheduler.start()
-        self._scheduler.add_job(
+
+        # ── Handle APScheduler v3 vs v4 compatibility ──
+        # v3: start() is synchronous (starts bg thread)
+        # v4: start() is async coroutine (must be awaited)
+        start_result = self._scheduler.start()
+        if asyncio.iscoroutine(start_result):
+            await start_result
+            logger.info("APScheduler v4+ detected — start() awaited")
+
+        # v4: add_job may be async; v3: synchronous
+        add_result = self._scheduler.add_job(
             self._check_and_scan,
             trigger=IntervalTrigger(seconds=settings.CHECK_INTERVAL_SECONDS),
             id="scan_loop",
             replace_existing=True,
         )
-        logger.info("Trading scheduler started")
+        if asyncio.iscoroutine(add_result):
+            await add_result
+
+        self._scheduler_started = True
+        self._last_heartbeat = time.time()
+
+        # Immediate startup heartbeat to verify scheduler is alive
+        is_trading, status = is_trading_time()
+        logger.info(
+            "Trading scheduler STARTED | check_interval=%ds | scan_interval=%ds | "
+            "trading_status=%s | is_trading=%s",
+            settings.CHECK_INTERVAL_SECONDS, settings.SCAN_INTERVAL_SECONDS,
+            status, is_trading,
+        )
+
+        # Run an immediate check so user doesn't wait 60s for first cycle
+        await self._check_and_scan()
 
     async def stop(self):
         if self._scheduler:
@@ -71,6 +98,8 @@ class TradingScheduler:
 
     async def _check_and_scan(self):
         """每60秒检查一次，交易时段每5分钟扫描一次。"""
+        self._last_heartbeat = time.time()
+
         if self._paused or not self._engine:
             return
 
@@ -159,25 +188,43 @@ class TradingScheduler:
 
         self._scan_running = True
 
-        def _run_scan_bg():
+        async def _run_scan_bg():
             try:
-                self._engine.run_scan()
+                loop = asyncio.get_running_loop()
+                result = await loop.run_in_executor(self._executor, self._engine.run_scan)
+                if self._broadcast:
+                    await self._broadcast({
+                        "type": "scan_result",
+                        **result,
+                    })
             except Exception as e:
                 logger.error(f"Manual scan error: {e}", exc_info=True)
+                if self._broadcast:
+                    try:
+                        await self._broadcast({
+                            "type": "scan_error",
+                            "error": str(e),
+                        })
+                    except Exception:
+                        pass
             finally:
                 self._scan_running = False
 
-        self._executor.submit(_run_scan_bg)
+        asyncio.create_task(_run_scan_bg())
         return {"status": "scan_started", "message": "扫描已在后台启动，结果请查看仪表盘"}
 
     def get_status(self) -> dict:
         is_trading, status = is_trading_time()
+        heartbeat_ago = time.time() - self._last_heartbeat if self._last_heartbeat else None
         return {
-            "running": True,
+            "running": self._scheduler_started,
             "paused": self._paused,
             "trading": is_trading,
             "trading_status": status,
             "scan_count": self.scan_count,
             "last_scan": datetime.fromtimestamp(self._last_scan).isoformat()
             if self._last_scan else None,
+            "scheduler_healthy": heartbeat_ago is not None and heartbeat_ago < 180,
+            "last_heartbeat_sec_ago": round(heartbeat_ago, 1) if heartbeat_ago else None,
+            "scan_running": getattr(self, '_scan_running', False),
         }

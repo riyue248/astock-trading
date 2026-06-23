@@ -3,11 +3,16 @@
 """
 import sys
 import os
+import logging
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 if __name__ == "__main__":
-    import subprocess
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    )
+
     print("=" * 50)
     print("  Automated Paper Trading System")
     print("  自动化A股模拟交易系统")
@@ -17,10 +22,11 @@ if __name__ == "__main__":
     print(f"  Scan: Every 5 min during trading hours")
     print(f"  Dashboard: http://localhost:8000")
     print("=" * 50)
-    subprocess.run([
-        sys.executable, "-m", "uvicorn",
+
+    import uvicorn
+    uvicorn.run(
         "web.app:app",
-        "--host", "0.0.0.0",
-        "--port", "8000",
-        "--log-level", "info",
-    ])
+        host="0.0.0.0",
+        port=8000,
+        log_level="info",
+    )

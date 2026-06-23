@@ -17,7 +17,10 @@ from config import settings
 logger = logging.getLogger(__name__)
 
 # 设置全局 socket 超时，防止 akshare 调用永久卡住
-socket.setdefaulttimeout(30)
+socket.setdefaulttimeout(15)
+
+# AKShare 调用超时（秒）
+_AKSHARE_TIMEOUT = 15
 
 # Disable system proxy
 os.environ["NO_PROXY"] = "*"
@@ -226,7 +229,10 @@ def get_candidate_pool(top_n: int = None) -> list[dict]:
 def fetch_stock_history(symbol: str, days: int = None) -> pd.DataFrame:
     """
     获取个股历史K线（通过AKShare的Sina数据源）。
+    带超时保护，防止 API 调用永久阻塞扫描线程。
     """
+    import concurrent.futures
+
     if days is None:
         days = settings.DEFAULT_HISTORY_DAYS
 
@@ -238,67 +244,87 @@ def fetch_stock_history(symbol: str, days: int = None) -> pd.DataFrame:
     prefix = "sh" if code.startswith(("6", "9")) else "sz"
     sina_code = f"{prefix}{code}"
 
-    try:
-        import akshare as ak
-        end_date = datetime.now().strftime("%Y%m%d")
-        start_date = (datetime.now() - timedelta(days=days)).strftime("%Y%m%d")
+    end_date = datetime.now().strftime("%Y%m%d")
+    start_date = (datetime.now() - timedelta(days=days)).strftime("%Y%m%d")
 
-        df = ak.stock_zh_a_daily(
+    def _fetch():
+        import akshare as ak
+        return ak.stock_zh_a_daily(
             symbol=sina_code, start_date=start_date,
             end_date=end_date, adjust="qfq",
         )
-        if df is None or df.empty:
-            return pd.DataFrame()
 
-        col_map = {
-            "date": "date", "open": "open", "high": "high",
-            "low": "low", "close": "close", "volume": "volume",
-            "amount": "amount", "turnover": "turnover",
-        }
-        df.rename(columns={k: v for k, v in col_map.items() if k in df.columns}, inplace=True)
-        if "date" in df.columns:
-            df["date"] = pd.to_datetime(df["date"]).dt.strftime("%Y-%m-%d")
-        if "close" in df.columns and "change_pct" not in df.columns:
-            df["change_pct"] = df["close"].pct_change() * 100
-
-        return df
+    try:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+            future = pool.submit(_fetch)
+            df = future.result(timeout=_AKSHARE_TIMEOUT)
+    except concurrent.futures.TimeoutError:
+        logger.warning(f"History fetch timeout for {sina_code} ({_AKSHARE_TIMEOUT}s)")
+        return pd.DataFrame()
     except Exception as e:
         logger.warning(f"History fetch error for {symbol}: {e}")
         return pd.DataFrame()
 
+    if df is None or df.empty:
+        return pd.DataFrame()
+
+    col_map = {
+        "date": "date", "open": "open", "high": "high",
+        "low": "low", "close": "close", "volume": "volume",
+        "amount": "amount", "turnover": "turnover",
+    }
+    df.rename(columns={k: v for k, v in col_map.items() if k in df.columns}, inplace=True)
+    if "date" in df.columns:
+        df["date"] = pd.to_datetime(df["date"]).dt.strftime("%Y-%m-%d")
+    if "close" in df.columns and "change_pct" not in df.columns:
+        df["change_pct"] = df["close"].pct_change() * 100
+
+    return df
+
 
 def fetch_index_history(symbol: str = "sh000001", days: int = None) -> pd.DataFrame:
-    """获取指数历史K线，例如 sh000001 上证指数。"""
+    """获取指数历史K线，例如 sh000001 上证指数。带超时保护。"""
+    import concurrent.futures
+
     if days is None:
         days = settings.DEFAULT_HISTORY_DAYS
 
-    try:
+    start_date = (datetime.now() - timedelta(days=days)).strftime("%Y%m%d")
+    end_date = datetime.now().strftime("%Y%m%d")
+
+    def _fetch():
         import akshare as ak
-        end_date = datetime.now().strftime("%Y%m%d")
-        start_date = (datetime.now() - timedelta(days=days)).strftime("%Y%m%d")
+        return ak.stock_zh_index_daily(symbol=symbol)
 
-        df = ak.stock_zh_index_daily(symbol=symbol)
-        if df is None or df.empty:
-            return pd.DataFrame()
-
-        col_map = {
-            "date": "date", "open": "open", "high": "high",
-            "low": "low", "close": "close", "volume": "volume",
-            "amount": "amount",
-        }
-        df.rename(columns={k: v for k, v in col_map.items() if k in df.columns}, inplace=True)
-        if "date" in df.columns:
-            df["date"] = pd.to_datetime(df["date"])
-            start = pd.to_datetime(start_date)
-            end = pd.to_datetime(end_date)
-            df = df[(df["date"] >= start) & (df["date"] <= end)].copy()
-            df["date"] = df["date"].dt.strftime("%Y-%m-%d")
-        if "close" in df.columns and "change_pct" not in df.columns:
-            df["change_pct"] = df["close"].pct_change() * 100
-        return df
+    try:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+            future = pool.submit(_fetch)
+            df = future.result(timeout=_AKSHARE_TIMEOUT)
+    except concurrent.futures.TimeoutError:
+        logger.warning(f"Index history fetch timeout for {symbol} ({_AKSHARE_TIMEOUT}s)")
+        return pd.DataFrame()
     except Exception as e:
         logger.warning(f"Index history fetch error for {symbol}: {e}")
         return pd.DataFrame()
+
+    if df is None or df.empty:
+        return pd.DataFrame()
+
+    col_map = {
+        "date": "date", "open": "open", "high": "high",
+        "low": "low", "close": "close", "volume": "volume",
+        "amount": "amount",
+    }
+    df.rename(columns={k: v for k, v in col_map.items() if k in df.columns}, inplace=True)
+    if "date" in df.columns:
+        df["date"] = pd.to_datetime(df["date"])
+        start = pd.to_datetime(start_date)
+        end = pd.to_datetime(end_date)
+        df = df[(df["date"] >= start) & (df["date"] <= end)].copy()
+        df["date"] = df["date"].dt.strftime("%Y-%m-%d")
+    if "close" in df.columns and "change_pct" not in df.columns:
+        df["change_pct"] = df["close"].pct_change() * 100
+    return df
 
 
 def fetch_index_spot() -> pd.DataFrame:
