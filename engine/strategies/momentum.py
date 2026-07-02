@@ -1,5 +1,6 @@
 """
-动量策略 — 放量突破 + 价格动能
+动量策略 — 放量突破 + 价格动能 + 持续性验证
+v2: 连续2日放量检查（防一日游诱多）
 """
 import pandas as pd
 
@@ -19,6 +20,7 @@ class MomentumStrategy(BaseStrategy):
 
         last = df.iloc[-1]
         prev = df.iloc[-2] if len(df) > 1 else last
+        prev2 = df.iloc[-3] if len(df) > 2 else prev
 
         close = last.get("close", 0)
         open_p = last.get("open", 0)
@@ -29,20 +31,31 @@ class MomentumStrategy(BaseStrategy):
 
         prev_close = prev.get("close", 0)
         prev_volume = prev.get("volume", 0)
+        prev_vol_ma5 = prev.get("volume_ma5", 1)
+        prev2_volume = prev2.get("volume", 0)
+        prev2_vol_ma5 = prev2.get("volume_ma5", 1)
 
         reasons = []
         score = 0.0
 
-        # 1. Volume breakout
-        if vol_ma5 and vol_ma5 > 0 and volume > vol_ma5 * self.volume_ratio:
-            score += 0.35
+        # ── 1. Volume breakout (持续性验证) ──
+        today_surge = vol_ma5 > 0 and volume > vol_ma5 * self.volume_ratio
+        yesterday_surge = prev_vol_ma5 > 0 and prev_volume > prev_vol_ma5 * 1.2
+
+        if today_surge and yesterday_surge:
+            # 连续两日放量 → 强信号
+            score += 0.4
+            reasons.append(f"VolSustain({volume/vol_ma5:.1f}x)")
+        elif today_surge:
+            # 单日放量 → 正常信号（需其他条件配合）
+            score += 0.25
             reasons.append(f"VolBreak({volume/vol_ma5:.1f}x)")
-        elif vol_ma5 and vol_ma5 > 0 and volume > vol_ma5 * 1.2:
+        elif vol_ma5 > 0 and volume > vol_ma5 * 1.2:
             score += 0.15
             reasons.append("VolHigh")
 
-        # 2. Price surge
-        if open_p and open_p > 0:
+        # ── 2. Price surge ──
+        if open_p > 0:
             day_change = (close - open_p) / open_p
             if day_change > self.price_surge:
                 score += 0.3
@@ -51,19 +64,19 @@ class MomentumStrategy(BaseStrategy):
                 score += 0.1
                 reasons.append("Up")
 
-        # 3. Momentum continuation
+        # ── 3. Momentum continuation ──
         if ma5 and ma10 and close > ma5 > ma10:
             score += 0.2
             reasons.append("Momentum")
         elif close > ma5:
             score += 0.1
 
-        # 4. Volume-price health check
+        # ── 4. Volume-price health ──
         if close and prev_close and volume and prev_volume:
             price_up = close > prev_close
             vol_up = volume > prev_volume
             if price_up and vol_up:
-                score += 0.15
+                score += 0.1
                 reasons.append("Healthy")
             elif not price_up and vol_up:
                 score -= 0.3

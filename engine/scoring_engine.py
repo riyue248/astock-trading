@@ -103,11 +103,41 @@ class ScoringEngine:
             for s in results.values()
         )
 
-        if strong_buy and composite > 0:
+        # ── 冲突检测: 策略严重分歧 → 不交易 ──
+        scores_list = [s.score for s in results.values()]
+        has_strong_buy_signal = any(s > 0.5 for s in scores_list)
+        has_strong_sell_signal = any(s < -0.5 for s in scores_list)
+        conflict = has_strong_buy_signal and has_strong_sell_signal
+
+        # ── 共识检测: 三策略一致 → 降低门槛 ──
+        consensus_buy = buy_signals >= 2 and sell_signals == 0
+        consensus_sell = sell_signals >= 2 and buy_signals == 0
+        all_agree_buy = buy_signals >= 3
+        all_agree_sell = sell_signals >= 3
+
+        if conflict:
+            # 矛盾信号 → 观望（除非某策略极端强势）
+            if strong_buy and not has_strong_sell_signal:
+                action = "buy"
+            elif strong_sell and not has_strong_buy_signal:
+                action = "sell"
+            else:
+                action = "hold"
+        elif all_agree_buy and composite > 0:
+            # 三策略全票通过 → 大幅降低门槛
+            action = "buy"
+        elif all_agree_sell and composite < 0:
+            action = "sell"
+        elif strong_buy and composite > 0:
+            action = "buy"
+        elif consensus_buy and composite >= settings.BUY_THRESHOLD * 0.6:
+            # 二策略同意 → 降低门槛 40%
             action = "buy"
         elif composite >= settings.BUY_THRESHOLD and buy_signals >= 1:
             action = "buy"
         elif strong_sell and composite < 0:
+            action = "sell"
+        elif consensus_sell and composite <= -(settings.SELL_THRESHOLD * 0.6):
             action = "sell"
         elif (
             composite <= -settings.SELL_THRESHOLD and sell_signals >= 1

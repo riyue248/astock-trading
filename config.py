@@ -44,7 +44,11 @@ class Settings:
     # --- Scan / Scheduler ---
     SCAN_INTERVAL_SECONDS = 300     # 5 minutes
     CHECK_INTERVAL_SECONDS = 60     # Check every 60s if scan is due
+    OPEN_DELAY_MINUTES = 5          # Delay first scan after market open (avoids opening noise)
     DATA_CACHE_TTL = 30             # Spot data cache TTL (seconds)
+
+    # --- Trading guards ---
+    SELL_COOLDOWN_HOURS = 4         # Don't re-buy a stock within N hours of selling it
 
     # --- Optimizer ---
     OPTIMIZER_TRADE_LOOKBACK = 20   # Recent trades for win rate calc

@@ -4,7 +4,7 @@
 import asyncio
 import logging
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
@@ -133,6 +133,17 @@ class TradingScheduler:
 
         if not is_trading:
             return
+
+        # 开盘后延迟：避免开盘剧烈波动产生虚假信号
+        now_dt = datetime.now()
+        morning_open = datetime(now_dt.year, now_dt.month, now_dt.day,
+                                settings.MORNING_START.hour, settings.MORNING_START.minute)
+        afternoon_open = datetime(now_dt.year, now_dt.month, now_dt.day,
+                                  settings.AFTERNOON_START.hour, settings.AFTERNOON_START.minute)
+        delay_delta = timedelta(minutes=settings.OPEN_DELAY_MINUTES)
+        if (morning_open <= now_dt < morning_open + delay_delta) or \
+           (afternoon_open <= now_dt < afternoon_open + delay_delta):
+            return  # 开盘初期跳过
 
         # Check if 5 minutes elapsed since last scan
         now = time.time()

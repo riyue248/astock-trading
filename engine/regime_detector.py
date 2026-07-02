@@ -16,12 +16,14 @@ _regime_cache: dict = {}
 def detect_regime() -> dict:
     """
     检测当前市场状态。
-    使用上证指数 ADX(14) 判断。
-    返回: {regime, adx_value, date}
+    使用上证指数 ADX(14) + +DI/-DI 方向判断。
+    返回: {regime, adx_value, plus_di, minus_di, direction, date}
 
-    ADX > 25 → trending（趋势市，趋势策略加重）
-    ADX < 20 → ranging（震荡市，反转策略加重）
-    20-25   → transition（过渡期，中性权重）
+    状态判断:
+      ADX > 25, +DI > -DI → uptrend  （上涨趋势，趋势策略加重）
+      ADX > 25, -DI > +DI → downtrend（下跌趋势，趋势策略降权，反转升权）
+      ADX < 20             → ranging   （震荡市，反转策略加重）
+      其他                  → transition（过渡期，中性权重）
     """
     from datetime import datetime
     from engine.indicators import adx
@@ -32,63 +34,88 @@ def detect_regime() -> dict:
     if _regime_cache.get("date") == today:
         return {"regime": _regime_cache["regime"],
                 "adx_value": _regime_cache["adx_value"],
+                "plus_di": _regime_cache.get("plus_di", 20),
+                "minus_di": _regime_cache.get("minus_di", 20),
+                "direction": _regime_cache.get("direction", "neutral"),
                 "date": today}
 
     try:
-        # Fetch Shanghai Composite history explicitly. Do not route through
-        # stock history, where 000001 means sz000001 (平安银行).
         df = fetch_index_history("sh000001", days=60)
 
         if df is None or df.empty or len(df) < 20:
             logger.warning("Insufficient index data for regime detection")
-            return {"regime": "transition", "adx_value": 20, "date": today}
+            return {"regime": "transition", "adx_value": 20,
+                    "plus_di": 20, "minus_di": 20, "direction": "neutral", "date": today}
 
-        # Compute ADX
         if "high" not in df.columns or "low" not in df.columns:
-            # Use close as proxy if no high/low
             df["high"] = df["close"] * 1.01
             df["low"] = df["close"] * 0.99
 
         adx_df = adx(df["high"], df["low"], df["close"], period=14)
         latest_adx = adx_df["adx"].iloc[-1]
+        latest_plus_di = adx_df["plus_di"].iloc[-1]
+        latest_minus_di = adx_df["minus_di"].iloc[-1]
 
         if pd.isna(latest_adx):
             regime = "transition"
             latest_adx = 20
+            direction = "neutral"
         elif latest_adx > 25:
-            regime = "trending"
+            # 区分上涨趋势 vs 下跌趋势
+            if latest_plus_di > latest_minus_di:
+                regime = "uptrend"
+                direction = "up"
+            else:
+                regime = "downtrend"
+                direction = "down"
         elif latest_adx < 20:
             regime = "ranging"
+            direction = "neutral"
         else:
             regime = "transition"
+            direction = "neutral"
 
         _regime_cache["date"] = today
         _regime_cache["regime"] = regime
         _regime_cache["adx_value"] = round(float(latest_adx), 2)
+        _regime_cache["plus_di"] = round(float(latest_plus_di), 2)
+        _regime_cache["minus_di"] = round(float(latest_minus_di), 2)
+        _regime_cache["direction"] = direction
 
-        logger.info(f"Market regime: {regime} (ADX={latest_adx:.1f})")
-        return {"regime": regime, "adx_value": round(float(latest_adx), 2), "date": today}
+        logger.info(f"Market regime: {regime} (ADX={latest_adx:.1f}, "
+                    f"+DI={latest_plus_di:.1f}, -DI={latest_minus_di:.1f})")
+        return {"regime": regime, "adx_value": round(float(latest_adx), 2),
+                "plus_di": round(float(latest_plus_di), 2),
+                "minus_di": round(float(latest_minus_di), 2),
+                "direction": direction, "date": today}
 
     except Exception as e:
         logger.warning(f"Regime detection failed: {e}")
-        return {"regime": "transition", "adx_value": 20, "date": today}
+        return {"regime": "transition", "adx_value": 20,
+                "plus_di": 20, "minus_di": 20, "direction": "neutral", "date": today}
 
 
 def get_regime_weights(base_weights: dict) -> dict:
     """
     根据市场状态调整策略权重。
 
-    base_weights: {"trend": 0.40, "momentum": 0.35, "reversal": 0.25}
-    返回调整后的权重字典。
+    uptrend (ADX>25, +DI>-DI): trend×1.5, reversal×0.5
+    downtrend (ADX>25, -DI>+DI): trend×0.5, reversal×1.2（下跌趋势抄底机会多，但趋势跟随危险）
+    ranging (ADX<20): trend×0.5, reversal×1.5
+
+    返回调整后的权重字典（已归一化）。
     """
     regime_info = detect_regime()
     regime = regime_info["regime"]
 
     weights = dict(base_weights)
 
-    if regime == "trending":
+    if regime == "uptrend":
         weights["trend"] *= 1.5
         weights["reversal"] *= 0.5
+    elif regime == "downtrend":
+        weights["trend"] *= 0.5      # 下跌趋势中趋势跟随危险
+        weights["reversal"] *= 1.2    # 适度增加抄底权重，但不激进
     elif regime == "ranging":
         weights["trend"] *= 0.5
         weights["reversal"] *= 1.5

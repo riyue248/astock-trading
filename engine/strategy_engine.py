@@ -25,6 +25,8 @@ class StrategyEngine:
         self.risk = RiskManager()
         self.scan_count = 0
         self.last_scan_time: datetime | None = None
+        # Cooldown: {symbol: datetime} — 卖出后冷却期
+        self._sell_cooldown: dict[str, datetime] = {}
 
     def run_scan(self) -> dict:
         """
@@ -73,6 +75,7 @@ class StrategyEngine:
                 )
                 if trade:
                     self._record_trade_result(trade)
+                    self._sell_cooldown[sell_order["symbol"]] = datetime.now()
                     result["sells"].append({
                         "symbol": sell_order["symbol"],
                         "price": sell_order["price"],
@@ -151,6 +154,17 @@ class StrategyEngine:
             for buy_rec in ranked["buy"]:
                 try:
                     symbol = buy_rec["symbol"]
+
+                    # Cooldown check: 卖出后冷却期内不买回
+                    if symbol in self._sell_cooldown:
+                        sold_at = self._sell_cooldown[symbol]
+                        cooldown_sec = settings.SELL_COOLDOWN_HOURS * 3600
+                        if (datetime.now() - sold_at).total_seconds() < cooldown_sec:
+                            logger.info(f"Cooldown: {symbol} sold {sold_at.strftime('%H:%M')}, skip re-buy")
+                            continue
+                        else:
+                            del self._sell_cooldown[symbol]
+
                     name = buy_rec["name"]
                     score = buy_rec["composite_score"]
 
@@ -209,6 +223,7 @@ class StrategyEngine:
                 trade = self.account.sell(symbol, price, "signal")
                 if trade:
                     self._record_trade_result(trade)
+                    self._sell_cooldown[sell_order["symbol"]] = datetime.now()
                     result["sells"].append({
                         "symbol": symbol,
                         "price": price,

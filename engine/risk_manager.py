@@ -27,14 +27,16 @@ class RiskManager:
         凯利比例 f = win_rate - (1 - win_rate) / (avg_win / avg_loss)
         半凯利 = f / 2
 
+        从 DB 加载真实的 avg_win/avg_loss，无数据时用保守默认值。
+
         返回值: 股数（100的整数倍）
         """
         if score <= 0 or win_rate <= 0.1:
             return 0
 
-        # Conservative win/loss ratio assumption
-        avg_win = 0.08   # 8% average win (between stop -8% and take profit +15%)
-        avg_loss = 0.05  # 5% average loss (tighter than stop loss due to early exits)
+        # Load real trade stats from DB, fall back to conservative defaults
+        avg_win, avg_loss = self._load_trade_stats()
+
         ratio = avg_win / max(avg_loss, 0.001)
 
         # Kelly fraction
@@ -71,6 +73,35 @@ class RiskManager:
     @staticmethod
     def calculate_take_profit(entry_price: float) -> float:
         return entry_price * (1 + settings.TAKE_PROFIT_PCT)
+
+    @staticmethod
+    def _load_trade_stats() -> tuple[float, float]:
+        """
+        从 DB 的策略表现表中加载真实 avg_win / avg_loss。
+        返回 (avg_win, avg_loss)，默认为 (0.08, 0.05)。
+        """
+        try:
+            from data.database import SessionLocal
+            from models.orm import StrategyPerformance
+            from sqlalchemy import select
+            with SessionLocal() as db:
+                perfs = db.execute(select(StrategyPerformance)).scalars().all()
+                if perfs:
+                    total_trades = sum(p.total_trades or 0 for p in perfs)
+                    if total_trades >= 5:
+                        # Weighted average across strategies
+                        total_wins = sum(p.wins or 0 for p in perfs)
+                        total_losses = sum(p.losses or 0 for p in perfs)
+                        avg_w = sum((p.avg_win_pct or 0) * (p.wins or 0) for p in perfs)
+                        avg_l = sum((p.avg_loss_pct or 0) * (p.losses or 0) for p in perfs)
+                        real_avg_win = avg_w / max(total_wins, 1)
+                        real_avg_loss = avg_l / max(total_losses, 1)
+                        if real_avg_win > 0 and real_avg_loss > 0:
+                            return (real_avg_win, real_avg_loss)
+        except Exception:
+            pass
+        # Conservative defaults
+        return (0.08, 0.05)
 
     def check_portfolio_ok(self, drawdown_pct: float) -> bool:
         """检查组合是否允许新开仓。"""
