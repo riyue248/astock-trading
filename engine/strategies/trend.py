@@ -40,8 +40,6 @@ class TrendStrategy(BaseStrategy):
         # Fallback: 如果趋势MA不可用（数据不够），用EMA26替代
         if not ma_trend or ma_trend == 0:
             ma_trend = self._safe_val(last, "ema26")
-            if ma_trend:
-                pass  # ema26 as trend proxy
 
         prev_ma_fast = self._safe_val(prev, f"ma{self.fast_ma}")
         prev_ma_slow = self._safe_val(prev, f"ma{self.slow_ma}")
