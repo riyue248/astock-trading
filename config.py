@@ -29,9 +29,11 @@ class Settings:
     WEIGHT_REVERSAL = 0.25
 
     # --- Scoring ---
-    BUY_THRESHOLD = 0.25            # Composite score to trigger buy (was 0.40, too high)
+    BUY_THRESHOLD = 0.18            # Composite score to trigger buy (曾0.40→0.25→0.18)
     SELL_THRESHOLD = 0.30           # Composite score to trigger sell
-    CANDIDATE_POOL_SIZE = 200       # Top N by volume (was 717, too slow for 5-min cycle)
+    STRONG_SIGNAL_CONFIDENCE = 0.75 # Bypass threshold if any strategy is this confident
+    CANDIDATE_POOL_SIZE = 300       # Top N by volume (曾717→200→300)
+    CANDIDATE_MIN_VALID = 50        # Min valid candidates before retry with double pool
 
     # --- Trading hours ---
     MORNING_START = time(9, 30)

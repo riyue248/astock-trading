@@ -31,6 +31,10 @@ class ScoringEngine:
         # Override weights (from optimizer)
         self._override_weights: dict = {}
 
+        # Dead-weight tracking: 趋势策略连续无信号计数
+        self._trend_silent_count = 0
+        self._trend_silent_threshold = 3  # 连续3次无信号则触发权重转移
+
         # Strategies
         self.strategies = {
             "trend": TrendStrategy(),
@@ -40,7 +44,17 @@ class ScoringEngine:
 
     @property
     def current_weights(self) -> dict:
-        base = self._override_weights if self._override_weights else self.base_weights
+        base = self._override_weights if self._override_weights else dict(self.base_weights)
+
+        # 趋势策略连续无信号 → 转移权重给动量
+        if self._trend_silent_count >= self._trend_silent_threshold:
+            base = dict(base)  # 拷贝，不修改原值
+            transfer = base.get("trend", 0.4) * 0.5  # 转一半
+            base["trend"] -= transfer
+            base["momentum"] += transfer
+            logger.info(f"Trend silent for {self._trend_silent_count} scans, "
+                        f"transferring {transfer:.3f} weight to momentum")
+
         return get_regime_weights(base)
 
     def update_weights(self, weights: dict):
@@ -72,12 +86,32 @@ class ScoringEngine:
 
         composite = round(composite, 4)
 
+        # 跟踪趋势策略活跃度
+        trend_signal = results.get("trend")
+        if trend_signal and trend_signal.action in ("buy", "sell"):
+            self._trend_silent_count = 0  # 重置
+        # silent_count 在 run_scan 结束时统一累加（见 track_trend_activity）
+
         # Decision
         buy_signals = sum(1 for s in results.values() if s.action == "buy")
         sell_signals = sum(1 for s in results.values() if s.action == "sell")
 
-        if composite >= settings.BUY_THRESHOLD and buy_signals >= 1:
+        # 强信号绕过：任一策略自身置信度达标即触发
+        strong_buy = any(
+            s.confidence >= settings.STRONG_SIGNAL_CONFIDENCE and s.action == "buy"
+            for s in results.values()
+        )
+        strong_sell = any(
+            s.confidence >= settings.STRONG_SIGNAL_CONFIDENCE and s.action == "sell"
+            for s in results.values()
+        )
+
+        if strong_buy and composite > 0:
             action = "buy"
+        elif composite >= settings.BUY_THRESHOLD and buy_signals >= 1:
+            action = "buy"
+        elif strong_sell and composite < 0:
+            action = "sell"
         elif (
             composite <= -settings.SELL_THRESHOLD and sell_signals >= 1
         ) or (
@@ -98,6 +132,25 @@ class ScoringEngine:
             "strategy_weights": json.dumps(weights),
             "signals": results,
         }
+
+    def track_trend_activity(self, stock_scores: list[dict]):
+        """
+        每次扫描结束后调用，跟踪趋势策略是否产生有效信号。
+        连续 N 次无信号 → 自动降低趋势权重。
+        """
+        has_trend_action = any(
+            s.get("signals", {}).get("trend") and s["signals"]["trend"].action in ("buy", "sell")
+            for s in stock_scores
+        )
+        if has_trend_action:
+            self._trend_silent_count = 0
+        else:
+            self._trend_silent_count += 1
+            if self._trend_silent_count >= self._trend_silent_threshold:
+                logger.warning(
+                    f"Trend strategy silent for {self._trend_silent_count} scans — "
+                    f"auto-redistributing weight to momentum"
+                )
 
     def rank_candidates(self, stock_scores: list[dict], held_symbols: set) -> dict:
         """

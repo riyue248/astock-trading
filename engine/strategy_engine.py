@@ -82,10 +82,17 @@ class StrategyEngine:
         except Exception as e:
             result["errors"].append(f"stop_check: {e}")
 
-        # 3. Get candidate pool
+        # 3. Get candidate pool (with retry if too few valid)
         try:
-            candidates = get_candidate_pool(settings.CANDIDATE_POOL_SIZE)
+            pool_size = settings.CANDIDATE_POOL_SIZE
+            candidates = get_candidate_pool(pool_size)
             result["candidates_scanned"] = len(candidates)
+
+            # 如果有效候选太少，翻倍重试一次
+            if len(candidates) < settings.CANDIDATE_MIN_VALID and pool_size < 500:
+                logger.info(f"Only {len(candidates)} candidates, retrying with double pool...")
+                candidates = get_candidate_pool(min(pool_size * 2, 500))
+                result["candidates_scanned"] = len(candidates)
         except Exception as e:
             logger.error(f"Candidate pool error: {e}")
             result["errors"].append(f"candidates: {e}")
@@ -135,7 +142,8 @@ class StrategyEngine:
 
             db.commit()
 
-        # 5. Rank and decide
+        # 5. Track trend activity & rank
+        self.scoring.track_trend_activity(stock_scores)
         ranked = self.scoring.rank_candidates(stock_scores, held_sina)
 
         # 6. Execute buys (if not halted)
