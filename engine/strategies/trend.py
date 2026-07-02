@@ -25,7 +25,9 @@ class TrendStrategy(BaseStrategy):
         return v
 
     def generate_signal(self, df: pd.DataFrame) -> SignalResult:
-        if df.empty or len(df) < max(self.fast_ma, self.slow_ma):
+        # 需要足够数据计算 MA(trend_ma) 和 MACD(26)
+        min_rows = max(self.trend_ma, 26)
+        if df.empty or len(df) < min_rows:
             return SignalResult("hold", 0.0, 0.0, "insufficient data")
 
         last = df.iloc[-1]

@@ -46,16 +46,19 @@ class ScoringEngine:
     def current_weights(self) -> dict:
         base = self._override_weights if self._override_weights else dict(self.base_weights)
 
-        # 趋势策略连续无信号 → 转移权重给动量
+        # 趋势策略连续无信号 → 转移权重给动量（不在这里记日志，避免每只股票都打）
         if self._trend_silent_count >= self._trend_silent_threshold:
             base = dict(base)  # 拷贝，不修改原值
             transfer = base.get("trend", 0.4) * 0.5  # 转一半
             base["trend"] -= transfer
             base["momentum"] += transfer
-            logger.info(f"Trend silent for {self._trend_silent_count} scans, "
-                        f"transferring {transfer:.3f} weight to momentum")
 
         return get_regime_weights(base)
+
+    @property
+    def trend_weight_adjusted(self) -> bool:
+        """趋势权重是否已被自动削减。"""
+        return self._trend_silent_count >= self._trend_silent_threshold
 
     def update_weights(self, weights: dict):
         """从 optimizer 更新权重。"""
@@ -82,15 +85,9 @@ class ScoringEngine:
         for name, strategy in self.strategies.items():
             signal = strategy.generate_signal(df)
             results[name] = signal
-            composite += signal.score * weights.get(name, 0.33)
+            composite += signal.score * weights.get(name, 0.0)
 
         composite = round(composite, 4)
-
-        # 跟踪趋势策略活跃度
-        trend_signal = results.get("trend")
-        if trend_signal and trend_signal.action in ("buy", "sell"):
-            self._trend_silent_count = 0  # 重置
-        # silent_count 在 run_scan 结束时统一累加（见 track_trend_activity）
 
         # Decision
         buy_signals = sum(1 for s in results.values() if s.action == "buy")
@@ -143,13 +140,27 @@ class ScoringEngine:
             for s in stock_scores
         )
         if has_trend_action:
+            if self._trend_silent_count >= self._trend_silent_threshold:
+                # 趋势恢复 → 日志
+                logger.info(
+                    f"Trend strategy recovered after {self._trend_silent_count} silent scans, "
+                    f"restoring normal weights"
+                )
             self._trend_silent_count = 0
         else:
             self._trend_silent_count += 1
-            if self._trend_silent_count >= self._trend_silent_threshold:
+            if self._trend_silent_count == self._trend_silent_threshold:
+                # 刚触发阈值 → 打印一次转移量
+                base_w = self.base_weights
+                transfer = base_w.get("trend", 0.4) * 0.5
                 logger.warning(
                     f"Trend strategy silent for {self._trend_silent_count} scans — "
-                    f"auto-redistributing weight to momentum"
+                    f"auto-redistributing {transfer:.1%} weight from trend to momentum"
+                )
+            elif self._trend_silent_count > self._trend_silent_threshold:
+                logger.warning(
+                    f"Trend strategy still silent ({self._trend_silent_count} scans), "
+                    f"weights remain adjusted"
                 )
 
     def rank_candidates(self, stock_scores: list[dict], held_symbols: set) -> dict:
